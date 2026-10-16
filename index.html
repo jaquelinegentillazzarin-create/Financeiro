@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle Financeiro do Casal</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--text:#202a36;--muted:#6b7280;--line:#e5e9ef;--accent:#245c4f;--accent2:#dff1e9;--red:#b93838;--yellow:#fff3cf;--shadow:0 5px 18px #172b4d0b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{background:linear-gradient(120deg,#173e36,#28725e);color:#fff;padding:24px 18px 20px}header .wrap,main{max-width:1150px;margin:auto}h1{margin:0 0 5px;font-size:clamp(23px,4vw,32px)}header p{margin:0;color:#dcebe6}
+main{padding:18px;}.tabs{display:flex;gap:8px;overflow:auto;padding:4px 0 14px}.tab{border:1px solid var(--line);background:#fff;border-radius:11px;padding:10px 14px;white-space:nowrap;cursor:pointer;font-weight:650;color:#43505c}.tab.active{background:var(--accent);color:white;border-color:var(--accent)}
+.panel{display:none}.panel.active{display:block}.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:17px;box-shadow:var(--shadow);min-width:0}.span-12{grid-column:span 12}.span-8{grid-column:span 8}.span-6{grid-column:span 6}.span-4{grid-column:span 4}.span-3{grid-column:span 3}
+h2{font-size:19px;margin:0 0 13px}h3{font-size:15px;margin:0 0 8px;color:#46515d}.metric{font-size:clamp(22px,3vw,29px);font-weight:800;letter-spacing:-.6px}.muted{color:var(--muted);font-size:13px}.positive{color:var(--accent)}.negative{color:var(--red)}
+label{display:block;font-size:13px;color:#52606d;font-weight:650;margin:0 0 5px}input,select,textarea{width:100%;border:1px solid #d5dce4;border-radius:9px;padding:10px 11px;background:#fff;color:var(--text);font:inherit;min-width:0}input:focus,select:focus,textarea:focus{outline:2px solid #b7ded0;border-color:#6da995}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.full{grid-column:1/-1}.btn{border:0;border-radius:9px;padding:10px 14px;font:inherit;font-weight:700;cursor:pointer;background:var(--accent);color:#fff}.btn.secondary{background:#e8eeeb;color:#24483f}.btn.danger{background:#fff0f0;color:var(--red)}.btn.small{font-size:12px;padding:6px 9px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.monthbar{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:15px}.monthbar>div{min-width:180px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:12px;color:var(--muted);font-weight:700}td.money,th.money{text-align:right;white-space:nowrap}.bill-list{display:grid;gap:12px}.bill-item{border:1px solid var(--line);border-radius:13px;padding:14px;background:#fff}.bill-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.bill-name{font-size:16px;font-weight:800}.bill-details{display:flex;gap:8px 16px;flex-wrap:wrap;margin-top:8px;color:var(--muted);font-size:13px}.bill-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.bill-actions .btn{min-height:42px;padding:10px 14px}.bill-actions .btn.pay{background:#e1f4e9;color:#185d3b;border:1px solid #a8d8bc}.bill-actions .btn.delete{background:#fff0f0;color:#a42323;border:1px solid #f0bcbc}.empty{padding:20px;text-align:center;color:var(--muted)}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#edf2f0;color:#3d655a;font-size:11px;font-weight:750}.barrow{display:grid;grid-template-columns:minmax(75px,130px) 1fr auto;align-items:center;gap:9px;margin:10px 0;font-size:13px}.bar{height:10px;background:#edf0f2;border-radius:99px;overflow:hidden}.bar>span{display:block;height:100%;background:#4e9a7f;border-radius:99px}.notice{background:var(--yellow);border:1px solid #f1dfa4;padding:12px;border-radius:11px;font-size:13px}.sectionhead{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.sectionhead h2{margin:0}.hidden{display:none!important}footer{max-width:1150px;margin:auto;padding:0 18px 28px;color:var(--muted);font-size:12px}
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#173e36,#28725e)}
+.login-card{background:#fff;border-radius:18px;padding:32px 28px;max-width:400px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.18)}
+.login-card h1{margin:0 0 6px;font-size:24px;color:#173e36;text-align:center}
+.login-card .subtitle{text-align:center;color:#6b7280;margin-bottom:22px;font-size:14px}
+.login-card .error{background:#fff0f0;color:#b93838;padding:10px 12px;border-radius:9px;font-size:13px;margin-bottom:12px;display:none}
+.login-card .success{background:#e1f4e9;color:#185d3b;padding:10px 12px;border-radius:9px;font-size:13px;margin-bottom:12px;display:none}
+.user-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:13px;color:#dcebe6}
+.user-bar button{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px}
+.loading{text-align:center;padding:40px;color:var(--muted)}
+@media(max-width:760px){main{padding:12px}.span-8,.span-6,.span-4,.span-3{grid-column:span 12}.card{padding:14px}.formgrid{grid-template-columns:1fr}.full{grid-column:auto}.barrow{grid-template-columns:85px 1fr auto}.monthbar>div{flex:1}}
+</style>
+</head>
+<body>
+
+<!-- TELA DE LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>Controle Financeiro</h1>
+    <p class="subtitle">Acesse com o e-mail do casal</p>
+    <div class="error" id="loginError"></div>
+    <div class="success" id="loginSuccess"></div>
+    <form id="loginForm">
+      <div style="margin-bottom:12px">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" required placeholder="seu@email.com" autocomplete="email">
+      </div>
+      <div style="margin-bottom:16px">
+        <label for="password">Senha</label>
+        <input type="password" id="password" required placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="current-password">
+      </div>
+      <div class="actions" style="margin:0">
+        <button class="btn" type="submit" id="btnLogin" style="flex:1">Entrar</button>
+        <button class="btn secondary" type="button" id="btnSignup" style="flex:1">Criar conta</button>
+      </div>
+    </form>
+    <p class="muted" style="text-align:center;margin-top:18px;font-size:12px">
+      Vocês dois usam o mesmo app.<br>Cada um cria sua conta com e-mail diferente.
+    </p>
+  </div>
+</div>
+
+<!-- APP PRINCIPAL (escondido até logar) -->
+<div id="app" class="hidden">
+<header>
+  <div class="wrap">
+    <div class="user-bar">
+      <span id="userEmail"></span>
+      <button type="button" id="btnLogout">Sair</button>
+    </div>
+    <h1>Controle Financeiro do Casal</h1>
+    <p>Dados sincronizados • Vocês dois veem e editam juntos</p>
+  </div>
+</header>
+<main>
+<nav class="tabs" aria-label="Seções">
+  <button class="tab active" data-tab="painel">Visão geral</button>
+  <button class="tab" data-tab="gastos">Adicionar gastos</button>
+  <button class="tab" data-tab="cartoes">Cartões</button>
+  <button class="tab" data-tab="contas">Contas futuras</button>
+  <button class="tab" data-tab="analise">Análises</button>
+  <button class="tab" data-tab="dados">Backup</button>
+</nav>
+<div class="monthbar">
+  <div><label for="selectedMonth">Mês em análise</label><input type="month" id="selectedMonth"></div>
+  <div class="muted" id="monthHint">Os dados são separados por mês.</div>
+</div>
+
+<section class="panel active" id="painel">
+<div class="grid">
+  <div class="card span-3"><div class="muted">Gastos do mês</div><div class="metric" id="totalMetric">R$ 0,00</div><div class="muted">Despesas registradas no mês</div></div>
+  <div class="card span-3"><div class="muted">Mês anterior</div><div class="metric" id="previousMetric">R$ 0,00</div><div class="muted" id="monthChange">Sem comparação ainda</div></div>
+  <div class="card span-3"><div class="muted">Contas futuras</div><div class="metric" id="futureMetric">R$ 0,00</div><div class="muted">Previsto para o próximo mês</div></div>
+  <div class="card span-3"><div class="muted">Faturas futuras</div><div class="metric" id="cardFutureMetric">R$ 0,00</div><div class="muted">Parcelas do próximo mês</div></div>
+  <div class="card span-6"><h2>Gastos por categoria</h2><div id="categoryBars"></div></div>
+  <div class="card span-6"><h2>Comparativo mensal</h2><div id="monthlyBars"></div></div>
+  <div class="card span-12"><div class="sectionhead"><h2>Últimos gastos do mês</h2><button class="btn secondary" onclick="goTab('gastos')">+ Adicionar gasto</button></div><div class="tablewrap" id="recentExpenses"></div></div>
+  <div class="card span-12"><h2>Resumo do mês</h2><div id="insights" class="muted">Carregando...</div></div>
+</div>
+</section>
+
+<section class="panel" id="gastos">
+<div class="grid">
+  <div class="card span-4"><h2>Novo gasto</h2>
+    <form id="expenseForm"><div class="formgrid">
+      <div class="full"><label for="expenseName">Descrição</label><input id="expenseName" required placeholder="Ex.: mercado, combustível"></div>
+      <div><label for="expenseAmount">Valor (R$)</label><input id="expenseAmount" type="number" min="0.01" step="0.01" required placeholder="0,00"></div>
+      <div><label for="expenseDate">Data</label><input id="expenseDate" type="date" required></div>
+      <div><label for="expenseCategory">Categoria</label><select id="expenseCategory"><option>Casa</option><option>Mercado</option><option>Lazer</option><option>Transporte</option><option>Saúde</option><option>Mensais</option><option>Cartões</option><option>Assinaturas</option><option>Educação</option><option>Pets</option><option>Compras</option><option>Outros</option></select></div>
+      <div><label for="expensePayment">Pagamento</label><select id="expensePayment"><option>Pix</option><option>Dinheiro</option><option>Débito</option><option>Crédito</option><option>Boleto</option><option>Transferência</option><option>Outro</option></select></div>
+      <div class="full"><label for="expenseNotes">Observações (opcional)</label><input id="expenseNotes" placeholder="Detalhes"></div>
+    </div><div class="actions"><button class="btn" type="submit">Salvar gasto</button><button class="btn secondary" type="reset">Limpar</button></div></form>
+  </div>
+  <div class="card span-8">
+    <div class="sectionhead"><h2>Despesas registradas</h2>
+      <div class="actions">
+        <select id="filterCategory" style="max-width:210px"><option value="">Todas as categorias</option></select>
+        <button type="button" class="btn danger" id="deleteAllExpenses">🗑 Apagar todos</button>
+      </div>
+    </div>
+    <p class="muted">Cada gasto tem botão de excluir na tabela.</p>
+    <div class="tablewrap" id="expenseTable"></div>
+  </div>
+</div>
+</section>
+
+<section class="panel" id="cartoes">
+<div class="grid">
+  <div class="card span-4">
+    <h2>Adicionar cartão</h2>
+    <form id="cardForm"><div class="formgrid">
+      <div class="full"><label for="cardName">Nome do cartão</label><input id="cardName" required placeholder="Ex.: Cartão principal"></div>
+      <div><label for="cardBank">Banco / emissor</label><input id="cardBank" placeholder="Ex.: Nubank"></div>
+      <div><label for="cardLimit">Limite (opcional)</label><input id="cardLimit" type="number" min="0" step=".01" placeholder="0,00"></div>
+      <div><label for="cardClosing">Dia de fechamento</label><input id="cardClosing" type="number" min="1" max="31" placeholder="Ex.: 20"></div>
+      <div><label for="cardDue">Dia de vencimento</label><input id="cardDue" type="number" min="1" max="31" placeholder="Ex.: 5"></div>
+    </div><div class="actions"><button class="btn" type="submit">Salvar cartão</button></div></form>
+    <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+    <h2>Registrar compra no cartão</h2>
+    <form id="purchaseForm"><div class="formgrid">
+      <div class="full"><label for="purchaseCard">Cartão</label><select id="purchaseCard" required></select></div>
+      <div class="full"><label for="purchaseName">Descrição da compra</label><input id="purchaseName" required placeholder="Ex.: eletrodoméstico"></div>
+      <div><label for="purchaseTotal">Valor total (R$)</label><input id="purchaseTotal" type="number" min=".01" step=".01" required></div>
+      <div><label for="purchaseInstallments">Número de parcelas</label><input id="purchaseInstallments" type="number" min="1" max="120" value="1" required></div>
+      <div><label for="purchaseFirstMonth">Mês da 1ª parcela</label><input id="purchaseFirstMonth" type="month" required></div>
+      <div><label for="purchaseCategory">Categoria</label><select id="purchaseCategory"><option>Casa</option><option>Mercado</option><option>Lazer</option><option>Transporte</option><option>Saúde</option><option>Mensais</option><option>Compras</option><option>Outros</option></select></div>
+    </div><div class="actions"><button class="btn" type="submit">Adicionar compra</button></div>
+    <p class="muted">As parcelas são distribuídas nos meses futuros. Não entram como gasto comum.</p></form>
+  </div>
+  <div class="card span-8">
+    <h2>Meus cartões</h2><div id="cardList"></div>
+    <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+    <h2>Parcelas e faturas previstas</h2><div class="tablewrap" id="installmentTable"></div>
+  </div>
+</div>
+</section>
+
+<section class="panel" id="contas">
+<div class="grid">
+  <div class="card span-4">
+    <h2>Adicionar conta futura</h2>
+    <form id="billForm"><div class="formgrid">
+      <div class="full"><label for="billName">Nome da conta</label><input id="billName" required placeholder="Ex.: aluguel, internet"></div>
+      <div><label for="billAmount">Valor (R$)</label><input id="billAmount" type="number" min=".01" step=".01" required></div>
+      <div><label for="billDueDate">Vencimento</label><input id="billDueDate" type="date" required></div>
+      <div><label for="billCategory">Categoria</label><select id="billCategory"><option>Mensais</option><option>Casa</option><option>Mercado</option><option>Saúde</option><option>Educação</option><option>Assinaturas</option><option>Outros</option></select></div>
+      <div><label for="billRepeat">Repetição</label><select id="billRepeat"><option value="no">Uma vez</option><option value="yes">Mensal</option></select></div>
+    </div><div class="actions"><button class="btn" type="submit">Salvar conta</button></div></form>
+  </div>
+  <div class="card span-8">
+    <div class="sectionhead">
+      <h2>Contas programadas</h2>
+      <select id="billFilter" style="max-width:220px">
+        <option value="all">Todas as contas</option>
+        <option value="next">Próximo mês</option>
+        <option value="unpaid">Pendentes</option>
+        <option value="paid">Pagas</option>
+      </select>
+    </div>
+    <p class="muted" style="margin:0 0 12px;font-size:12.5px">💡 <strong>Contas mensais:</strong> ao clicar em “Paguei este mês”, a data avança automaticamente para o próximo mês.</p>
+    <div class="tablewrap" id="billTable"></div>
+  </div>
+</div>
+</section>
+
+<section class="panel" id="analise">
+<div class="grid">
+  <div class="card span-6"><h2>Comparação mês a mês</h2><div class="tablewrap" id="comparisonTable"></div></div>
+  <div class="card span-6"><h2>Onde mais gastou</h2><div id="categoryRanking"></div></div>
+  <div class="card span-12"><h2>Detalhamento por categoria</h2><div class="tablewrap" id="categoryTable"></div></div>
+  <div class="card span-12"><h2>Como interpretar</h2><p class="muted">A comparação considera apenas os gastos comuns. Parcelas de cartão e contas futuras aparecem nas abas próprias para evitar duplicidade.</p></div>
+</div>
+</section>
+
+<section class="panel" id="dados">
+<div class="grid">
+  <div class="card span-6">
+    <h2>Backup dos dados</h2>
+    <p class="muted">Os dados ficam no Supabase (nuvem). Você ainda pode exportar uma cópia local.</p>
+    <div class="actions">
+      <button class="btn" id="exportBtn">Exportar backup JSON</button>
+    </div>
+  </div>
+  <div class="card span-6">
+    <h2>Sincronização</h2>
+    <div class="notice"><strong>Tudo sincronizado!</strong><br>Qualquer alteração que um de vocês fizer aparece para o outro automaticamente (basta atualizar a página ou mudar de aba).</div>
+    <p class="muted" style="margin-top:12px">Vocês estão usando o mesmo banco de dados compartilhado.</p>
+  </div>
+</div>
+</section>
+</main>
+<footer>Controle Financeiro do Casal • Dados sincronizados via Supabase</footer>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURAÇÃO DO SUPABASE - SUBSTITUA PELOS SEUS VALORES
+// ============================================================
+const SUPABASE_URL = 'https://cpeeazkirhjiyqghaoyk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable__Lj68P4NJGqtXaDTk85gEg_mGRET9va';
+// ============================================================
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const $ = id => document.getElementById(id);
+const money = n => Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const todayISO = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const monthISO = (d=new Date()) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+const shiftMonth = (month, offset) => { let [y,m]=month.split('-').map(Number); const d=new Date(y,m-1+offset,1); return monthISO(d); };
+const monthLabel = m => { if(!m) return ''; const [y,mo]=m.split('-').map(Number); return new Date(y,mo-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}); };
+const esc = s => String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let data = { expenses: [], cards: [], purchases: [], bills: [] };
+let currentUser = null;
+
+// -------------------- AUTH --------------------
+async function checkSession() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    showApp();
+    await loadAllData();
+  } else {
+    showLogin();
+  }
+}
+
+function showLogin() {
+  $('loginScreen').classList.remove('hidden');
+  $('app').classList.add('hidden');
+}
+
+function showApp() {
+  $('loginScreen').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  $('userEmail').textContent = currentUser?.email || '';
+}
+
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = $('email').value.trim();
+  const password = $('password').value;
+  $('loginError').style.display = 'none';
+  $('loginSuccess').style.display = 'none';
+  $('btnLogin').disabled = true;
+  $('btnLogin').textContent = 'Entrando...';
+
+  const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
+  $('btnLogin').disabled = false;
+  $('btnLogin').textContent = 'Entrar';
+
+  if (error) {
+    $('loginError').textContent = error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message;
+    $('loginError').style.display = 'block';
+    return;
+  }
+  currentUser = authData.user;
+  showApp();
+  await loadAllData();
+});
+
+$('btnSignup').addEventListener('click', async () => {
+  const email = $('email').value.trim();
+  const password = $('password').value;
+  if (!email || password.length < 6) {
+    $('loginError').textContent = 'Preencha e-mail e senha (mínimo 6 caracteres).';
+    $('loginError').style.display = 'block';
+    return;
+  }
+  $('loginError').style.display = 'none';
+  $('btnSignup').disabled = true;
+  $('btnSignup').textContent = 'Criando...';
+
+  const { data: authData, error } = await supabase.auth.signUp({ email, password });
+  $('btnSignup').disabled = false;
+  $('btnSignup').textContent = 'Criar conta';
+
+  if (error) {
+    $('loginError').textContent = error.message;
+    $('loginError').style.display = 'block';
+    return;
+  }
+  $('loginSuccess').textContent = 'Conta criada! Agora clique em Entrar.';
+  $('loginSuccess').style.display = 'block';
+});
+
+$('btnLogout').addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  currentUser = null;
+  data = { expenses: [], cards: [], purchases: [], bills: [] };
+  showLogin();
+});
+
+// -------------------- DATA LOAD / SAVE --------------------
+async function loadAllData() {
+  try {
+    const [exp, cards, purch, bills] = await Promise.all([
+      supabase.from('expenses').select('*').order('date', { ascending: false }),
+      supabase.from('cards').select('*').order('created_at', { ascending: true }),
+      supabase.from('purchases').select('*').order('created_at', { ascending: false }),
+      supabase.from('bills').select('*').order('due_date', { ascending: true })
+    ]);
+
+    if (exp.error) throw exp.error;
+    if (cards.error) throw cards.error;
+    if (purch.error) throw purch.error;
+    if (bills.error) throw bills.error;
+
+    // Normaliza nomes de campos para o código existente
+    data.expenses = (exp.data || []).map(e => ({
+      id: e.id,
+      name: e.name,
+      amount: Number(e.amount),
+      date: e.date,
+      category: e.category,
+      payment: e.payment,
+      notes: e.notes || ''
+    }));
+    data.cards = (cards.data || []).map(c => ({
+      id: c.id,
+      name: c.name,
+      bank: c.bank || '',
+      limit: Number(c.limit_amount || 0),
+      closing: c.closing,
+      due: c.due
+    }));
+    data.purchases = (purch.data || []).map(p => ({
+      id: p.id,
+      cardId: p.card_id,
+      name: p.name,
+      total: Number(p.total),
+      installments: Number(p.installments),
+      firstMonth: p.first_month,
+      category: p.category
+    }));
+    data.bills = (bills.data || []).map(b => ({
+      id: b.id,
+      name: b.name,
+      amount: Number(b.amount),
+      dueDate: b.due_date,
+      category: b.category,
+      repeat: b.repeat || 'no',
+      paid: !!b.paid
+    }));
+
+    render();
+  } catch (err) {
+    console.error(err);
+    alert('Erro ao carregar dados: ' + (err.message || err));
+  }
+}
+
+// -------------------- UI HELPERS (iguais ao original) --------------------
+function goTab(name) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === name));
+}
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => goTab(b.dataset.tab)));
+
+$('selectedMonth').value = monthISO();
+$('expenseDate').value = todayISO();
+$('purchaseFirstMonth').value = monthISO();
+$('billDueDate').value = todayISO();
+$('selectedMonth').addEventListener('change', render);
+
+function totalExpenses(m) { return data.expenses.filter(e => e.date?.slice(0,7) === m).reduce((s,e) => s + Number(e.amount), 0); }
+function monthExpenses(m) { return data.expenses.filter(e => e.date?.slice(0,7) === m); }
+function installmentsForMonth(m) {
+  let out = [];
+  for (const p of data.purchases) {
+    for (let i = 0; i < Number(p.installments); i++) {
+      if (shiftMonth(p.firstMonth, i) === m) out.push({ ...p, part: i+1, partAmount: Number(p.total)/Number(p.installments) });
+    }
+  }
+  return out;
+}
+function getBillDay(b) { return parseInt(b.dueDate.split('-')[2], 10) || 1; }
+function futureBillOccurrences(m) {
+  let sum = 0;
+  for (const b of data.bills) {
+    if (b.paid && b.repeat !== 'yes') continue;
+    if (b.dueDate.slice(0,7) === m) sum += Number(b.amount);
+  }
+  return sum;
+}
+
+function render() {
+  const m = $('selectedMonth').value || monthISO();
+  const prev = shiftMonth(m, -1);
+  const next = shiftMonth(m, 1);
+  const ex = monthExpenses(m);
+  const total = totalExpenses(m);
+  const pt = totalExpenses(prev);
+  const delta = total - pt;
+
+  $('totalMetric').textContent = money(total);
+  $('previousMetric').textContent = money(pt);
+  $('monthChange').textContent = total === 0 && pt === 0 ? 'Sem despesas para comparar' :
+    `${delta > 0 ? 'Subiu' : delta < 0 ? 'Caiu' : 'Não mudou'} ${money(Math.abs(delta))} (${pt ? Math.abs(delta/pt*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%' : '—'}) em relação ao mês anterior`;
+  $('futureMetric').textContent = money(futureBillOccurrences(next));
+  $('cardFutureMetric').textContent = money(installmentsForMonth(next).reduce((s,p) => s + p.partAmount, 0));
+
+  renderCategoryBars(ex);
+  renderMonthlyBars(m);
+  renderRecent(ex);
+  renderExpenseTable(ex);
+  renderCards();
+  renderInstallments(m);
+  renderBills();
+  renderComparison(m);
+  renderCategoryAnalysis(ex);
+  renderCategorySelect();
+  $('monthHint').textContent = monthLabel(m);
+
+  const cats = Object.entries(ex.reduce((a,e) => (a[e.category] = (a[e.category]||0) + Number(e.amount), a), {})).sort((a,b) => b[1]-a[1]);
+  let insight = ex.length ? `Você registrou ${ex.length} despesa(s), totalizando ${money(total)}. ` : 'Ainda não há despesas registradas neste mês. ';
+  if (cats.length) insight += `Sua maior categoria é ${cats[0][0]} (${money(cats[0][1])}), equivalente a ${total ? Math.round(cats[0][1]/total*100) : 0}% dos gastos. `;
+  if (pt > 0) insight += delta > 0 ? `O total está ${money(delta)} acima do mês anterior.` : delta < 0 ? `Você gastou ${money(-delta)} a menos que no mês anterior.` : 'O total está igual ao mês anterior.';
+  $('insights').textContent = insight;
+}
+
+function renderCategoryBars(ex) {
+  const sums = {};
+  ex.forEach(e => sums[e.category] = (sums[e.category]||0) + Number(e.amount));
+  const entries = Object.entries(sums).sort((a,b) => b[1]-a[1]);
+  const max = entries[0]?.[1] || 1;
+  $('categoryBars').innerHTML = entries.length ? entries.map(([c,v]) => `<div class="barrow"><span>${esc(c)}</span><div class="bar"><span style="width:${v/max*100}%"></span></div><strong>${money(v)}</strong></div>`).join('') : '<div class="empty">Adicione gastos para visualizar as categorias.</div>';
+}
+
+function renderMonthlyBars(m) {
+  const months = Array.from({length:6}, (_,i) => shiftMonth(m, i-5));
+  const vals = months.map(mm => ({m:mm, v: totalExpenses(mm)}));
+  const max = Math.max(1, ...vals.map(x => x.v));
+  $('monthlyBars').innerHTML = vals.map(x => `<div class="barrow"><span>${esc(monthLabel(x.m))}</span><div class="bar"><span style="width:${x.v/max*100}%"></span></div><strong>${money(x.v)}</strong></div>`).join('');
+}
+
+function expenseRows(arr) {
+  if (!arr.length) return '<div class="empty">Nenhum gasto encontrado.</div>';
+  return `<table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Pagamento</th><th class="money">Valor</th><th></th></tr></thead><tbody>${
+    arr.slice().sort((a,b) => b.date.localeCompare(a.date)).map(e => `<tr>
+      <td>${e.date.split('-').reverse().join('/')}</td>
+      <td><strong>${esc(e.name)}</strong>${e.notes ? `<div class="muted">${esc(e.notes)}</div>` : ''}</td>
+      <td>${esc(e.category)}</td><td>${esc(e.payment)}</td>
+      <td class="money">${money(e.amount)}</td>
+      <td><button class="btn danger small" onclick="deleteExpense('${e.id}')">🗑 Excluir</button></td>
+    </tr>`).join('')
+  }</tbody></table>`;
+}
+
+function renderRecent(ex) { $('recentExpenses').innerHTML = expenseRows(ex.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0,5)); }
+function renderExpenseTable(ex) {
+  const f = $('filterCategory').value;
+  $('expenseTable').innerHTML = expenseRows(f ? ex.filter(e => e.category === f) : ex);
+}
+function renderCategorySelect() {
+  const selected = $('filterCategory').value;
+  const cats = [...new Set(data.expenses.map(e => e.category))].sort();
+  $('filterCategory').innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c => `<option>${esc(c)}</option>`).join('');
+  $('filterCategory').value = cats.includes(selected) ? selected : '';
+}
+$('filterCategory').addEventListener('change', () => renderExpenseTable(monthExpenses($('selectedMonth').value)));
+
+// -------------------- CRUD OPERATIONS (Supabase) --------------------
+window.deleteExpense = async id => {
+  const item = data.expenses.find(e => e.id === id);
+  if (!confirm(`Excluir o gasto ${item?.name || ''} de ${money(item?.amount || 0)}?`)) return;
+  const { error } = await supabase.from('expenses').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await loadAllData();
+};
+
+$('deleteAllExpenses').addEventListener('click', async () => {
+  if (!data.expenses.length) { alert('Não há gastos para apagar.'); return; }
+  if (!confirm(`Apagar TODOS os ${data.expenses.length} gastos? Cartões e contas serão mantidos.`)) return;
+  const { error } = await supabase.from('expenses').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  if (error) { alert('Erro: ' + error.message); return; }
+  await loadAllData();
+  alert('Todos os gastos foram apagados.');
+});
+
+$('expenseForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const row = {
+    name: $('expenseName').value.trim(),
+    amount: Number($('expenseAmount').value),
+    date: $('expenseDate').value,
+    category: $('expenseCategory').value,
+    payment: $('expensePayment').value,
+    notes: $('expenseNotes').value.trim() || null
+  };
+  const { error } = await supabase.from('expenses').insert(row);
+  if (error) { alert('Erro ao salvar: ' + error.message); return; }
+  e.target.reset();
+  $('expenseDate').value = todayISO();
+  await loadAllData();
+});
+
+$('cardForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const row = {
+    name: $('cardName').value.trim(),
+    bank: $('cardBank').value.trim() || null,
+    limit_amount: Number($('cardLimit').value || 0) || null,
+    closing: $('cardClosing').value ? Number($('cardClosing').value) : null,
+    due: $('cardDue').value ? Number($('cardDue').value) : null
+  };
+  const { error } = await supabase.from('cards').insert(row);
+  if (error) { alert('Erro: ' + error.message); return; }
+  e.target.reset();
+  await loadAllData();
+});
+
+$('purchaseForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!data.cards.length) { alert('Cadastre um cartão primeiro.'); return; }
+  const row = {
+    card_id: $('purchaseCard').value,
+    name: $('purchaseName').value.trim(),
+    total: Number($('purchaseTotal').value),
+    installments: Number($('purchaseInstallments').value),
+    first_month: $('purchaseFirstMonth').value,
+    category: $('purchaseCategory').value
+  };
+  const { error } = await supabase.from('purchases').insert(row);
+  if (error) { alert('Erro: ' + error.message); return; }
+  e.target.reset();
+  $('purchaseFirstMonth').value = monthISO();
+  $('purchaseInstallments').value = 1;
+  await loadAllData();
+});
+
+function renderCards() {
+  $('purchaseCard').innerHTML = data.cards.length
+    ? data.cards.map(c => `<option value="${c.id}">${esc(c.name)}${c.bank ? ' — ' + esc(c.bank) : ''}</option>`).join('')
+    : '<option value="">Cadastre um cartão primeiro</option>';
+  $('cardList').innerHTML = data.cards.length
+    ? data.cards.map(c => `<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px">
+        <div class="sectionhead">
+          <div><strong>${esc(c.name)}</strong> ${c.bank ? `<span class="muted">· ${esc(c.bank)}</span>` : ''}
+            <div class="muted">${c.limit ? `Limite: ${money(c.limit)} · ` : ''}${c.closing ? `Fecha dia ${c.closing} · ` : ''}${c.due ? `Vence dia ${c.due}` : ''}</div>
+          </div>
+          <button class="btn danger small" onclick="deleteCard('${c.id}')">Excluir</button>
+        </div>
+      </div>`).join('')
+    : '<div class="empty">Nenhum cartão cadastrado.</div>';
+}
+
+window.deleteCard = async id => {
+  if (!confirm('Excluir cartão e as compras parceladas associadas?')) return;
+  const { error } = await supabase.from('cards').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await loadAllData();
+};
+
+function renderInstallments(m) {
+  let rows = [];
+  for (let i = 0; i < 12; i++) {
+    const mm = shiftMonth(m, i);
+    for (const p of installmentsForMonth(mm)) {
+      const c = data.cards.find(c => c.id === p.cardId);
+      rows.push({ month: mm, p, c });
+    }
+  }
+  $('installmentTable').innerHTML = rows.length
+    ? `<table><thead><tr><th>Mês</th><th>Cartão</th><th>Compra</th><th>Parcela</th><th class="money">Valor</th></tr></thead><tbody>${
+        rows.map(({month,p,c}) => `<tr><td>${esc(monthLabel(month))}</td><td>${esc(c?.name||'Cartão removido')}</td><td>${esc(p.name)}</td><td>${p.part}/${p.installments}</td><td class="money">${money(p.partAmount)}</td></tr>`).join('')
+      }</tbody></table>`
+    : '<div class="empty">Cadastre compras parceladas para ver as faturas previstas.</div>';
+}
+
+$('billForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const row = {
+    name: $('billName').value.trim(),
+    amount: Number($('billAmount').value),
+    due_date: $('billDueDate').value,
+    category: $('billCategory').value,
+    repeat: $('billRepeat').value,
+    paid: false
+  };
+  const { error } = await supabase.from('bills').insert(row);
+  if (error) { alert('Erro: ' + error.message); return; }
+  e.target.reset();
+  $('billDueDate').value = todayISO();
+  await loadAllData();
+});
+
+$('billFilter').addEventListener('change', renderBills);
+
+function renderBills() {
+  const f = $('billFilter').value;
+  const selected = $('selectedMonth').value || monthISO();
+  const nextM = shiftMonth(selected, 1);
+  let arr = data.bills.slice();
+
+  if (f === 'next') {
+    arr = arr.filter(b => {
+      if (b.paid && b.repeat !== 'yes') return false;
+      return b.dueDate.slice(0,7) === nextM;
+    });
+  } else if (f === 'unpaid') {
+    arr = arr.filter(b => !b.paid);
+  } else if (f === 'paid') {
+    arr = arr.filter(b => b.paid);
+  }
+  arr.sort((a,b) => a.dueDate.localeCompare(b.dueDate));
+
+  $('billTable').innerHTML = arr.length ? `<div class="bill-list">${arr.map(b => {
+    const isRecurring = b.repeat === 'yes';
+    const displayDate = b.dueDate.split('-').reverse().join('/');
+    const status = b.paid ? 'PAGA' : 'PENDENTE';
+    const payLabel = b.paid ? '↩ Reabrir conta' : (isRecurring ? '✓ Paguei este mês' : '✓ Marcar como paga');
+    return `<article class="bill-item">
+      <div class="bill-top">
+        <div>
+          <div class="bill-name">${esc(b.name)}</div>
+          <div class="bill-details">
+            <span>📅 Vencimento: <strong>${displayDate}</strong></span>
+            <span>Categoria: ${esc(b.category)}</span>
+            <span>Valor: <strong>${money(b.amount)}</strong></span>
+            ${isRecurring ? '<span class="pill" style="background:#e8f0fe;color:#1a56db">Mensal</span>' : ''}
+          </div>
+        </div>
+        <span class="pill">${status}</span>
+      </div>
+      <div class="bill-actions">
+        <button type="button" class="btn pay" onclick="toggleBill('${b.id}')">${payLabel}</button>
+        <button type="button" class="btn delete" onclick="deleteBill('${b.id}')">🗑 Excluir conta</button>
+      </div>
+    </article>`;
+  }).join('')}</div>` : '<div class="empty">Nenhuma conta para este filtro.<br><span class="muted">Cadastre uma conta ao lado.</span></div>';
+}
+
+window.toggleBill = async id => {
+  const b = data.bills.find(x => x.id === id);
+  if (!b) return;
+
+  let updates = {};
+  if (b.repeat === 'yes') {
+    if (!b.paid) {
+      const day = getBillDay(b);
+      const nextM = shiftMonth(b.dueDate.slice(0,7), 1);
+      let [y,m] = nextM.split('-').map(Number);
+      const maxDay = new Date(y, m, 0).getDate();
+      const newDay = Math.min(day, maxDay);
+      updates = { due_date: `${nextM}-${String(newDay).padStart(2,'0')}`, paid: false };
+      alert(`Conta "${b.name}" marcada como paga.\nPróximo vencimento: ${updates.due_date.split('-').reverse().join('/')}`);
+    } else {
+      const day = getBillDay(b);
+      const prevM = shiftMonth(b.dueDate.slice(0,7), -1);
+      let [y,m] = prevM.split('-').map(Number);
+      const maxDay = new Date(y, m, 0).getDate();
+      const newDay = Math.min(day, maxDay);
+      updates = { due_date: `${prevM}-${String(newDay).padStart(2,'0')}`, paid: false };
+    }
+  } else {
+    updates = { paid: !b.paid };
+  }
+
+  const { error } = await supabase.from('bills').update(updates).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await loadAllData();
+};
+
+window.deleteBill = async id => {
+  if (!confirm('Excluir esta conta?')) return;
+  const { error } = await supabase.from('bills').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await loadAllData();
+};
+
+function renderComparison(m) {
+  const months = Array.from({length:12}, (_,i) => shiftMonth(m, i-11));
+  $('comparisonTable').innerHTML = `<table><thead><tr><th>Mês</th><th class="money">Total</th><th class="money">Diferença</th></tr></thead><tbody>${
+    months.map((mm,i) => {
+      const v = totalExpenses(mm);
+      const p = i ? totalExpenses(months[i-1]) : 0;
+      const d = v - p;
+      return `<tr><td>${esc(monthLabel(mm))}</td><td class="money">${money(v)}</td><td class="money ${d>0?'negative':d<0?'positive':''}">${i ? (d>0?'+':'')+money(d) : '—'}</td></tr>`;
+    }).join('')
+  }</tbody></table>`;
+}
+
+function renderCategoryAnalysis(ex) {
+  const sums = {};
+  ex.forEach(e => sums[e.category] = (sums[e.category]||0) + Number(e.amount));
+  const entries = Object.entries(sums).sort((a,b) => b[1]-a[1]);
+  $('categoryRanking').innerHTML = entries.length
+    ? entries.map(([c,v],i) => `<div class="barrow"><span>${i+1}. ${esc(c)}</span><div class="bar"><span style="width:${v/(entries[0][1]||1)*100}%"></span></div><strong>${money(v)}</strong></div>`).join('')
+    : '<div class="empty">Sem dados neste mês.</div>';
+  const tot = totalExpenses($('selectedMonth').value);
+  $('categoryTable').innerHTML = entries.length
+    ? `<table><thead><tr><th>Categoria</th><th>Qtd</th><th class="money">Total</th><th class="money">%</th></tr></thead><tbody>${
+        entries.map(([c,v]) => `<tr><td>${esc(c)}</td><td>${ex.filter(e=>e.category===c).length}</td><td class="money">${money(v)}</td><td class="money">${tot ? (v/tot*100).toLocaleString('pt-BR',{maximumFractionDigits:1}) : 0}%</td></tr>`).join('')
+      }</tbody></table>`
+    : '<div class="empty">Sem dados neste mês.</div>';
+}
+
+$('exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `backup-financeiro-${todayISO()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// Inicia
+checkSession();
+</script>
+</body>
+</html>
