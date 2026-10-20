@@ -50,18 +50,32 @@ label{display:block;font-size:13px;color:#52606d;font-weight:650;margin:0 0 5px}
         <button class="btn secondary" type="button" id="btnSignup" style="flex:1">Criar conta</button>
       </div>
     </form>
+    <p style="text-align:center;margin-top:14px"><a href="#" id="btnForgot" style="color:#245c4f;font-size:13px;font-weight:650">Esqueci minha senha</a></p>
     <p class="muted" style="text-align:center;margin-top:18px;font-size:12px">
-      Vocês dois usam o mesmo app.<br>Cada um cria sua conta com e-mail diferente.<br><span style="opacity:.6">versão 3 ✓</span>
+      Vocês dois usam o mesmo app.<br>Cada um cria sua conta com e-mail diferente.<br><span style="opacity:.6">versão 4 ✓</span>
     </p>
   </div>
 </div>
 
+<div id="pwdModal" class="hidden" style="position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:99;padding:16px">
+  <div style="background:#fff;border-radius:14px;padding:22px;max-width:360px;width:100%">
+    <h2 style="margin:0 0 6px;color:#173e36">Nova senha</h2>
+    <p class="muted" style="margin:0 0 12px;font-size:13px">Mínimo 6 caracteres.</p>
+    <div id="pwdMsg" style="font-size:13px;margin-bottom:8px"></div>
+    <input type="password" id="newPwd" placeholder="Nova senha" autocomplete="new-password">
+    <div class="actions">
+      <button type="button" class="btn" id="btnSavePwd" style="flex:1">Salvar</button>
+      <button type="button" class="btn secondary" id="btnCancelPwd" style="flex:1">Cancelar</button>
+    </div>
+  </div>
+</div>
 <!-- APP PRINCIPAL (escondido até logar) -->
 <div id="app" class="hidden">
 <header>
   <div class="wrap">
     <div class="user-bar">
       <span id="userEmail"></span>
+      <button type="button" id="btnChangePwd">Alterar senha</button>
       <button type="button" id="btnLogout">Sair</button>
     </div>
     <h1>Controle Financeiro do Casal</h1>
@@ -731,6 +745,30 @@ $('exportBtn').addEventListener('click', () => {
   a.click();
   URL.revokeObjectURL(a.href);
 });
+
+// ---- SENHA ----
+function openPwd(){ $('pwdMsg').textContent=''; $('newPwd').value=''; $('pwdModal').classList.remove('hidden'); }
+$('btnChangePwd').addEventListener('click', openPwd);
+$('btnCancelPwd').addEventListener('click', () => $('pwdModal').classList.add('hidden'));
+$('btnSavePwd').addEventListener('click', async () => {
+  const pw = $('newPwd').value;
+  if (pw.length < 6) { $('pwdMsg').style.color='#b93838'; $('pwdMsg').textContent='Mínimo 6 caracteres.'; return; }
+  const { error } = await sb.auth.updateUser({ password: pw });
+  if (error) { $('pwdMsg').style.color='#b93838'; $('pwdMsg').textContent = error.message; return; }
+  $('pwdMsg').style.color='#185d3b'; $('pwdMsg').textContent='Senha alterada!';
+  setTimeout(() => $('pwdModal').classList.add('hidden'), 1200);
+});
+$('btnForgot').addEventListener('click', async e => {
+  e.preventDefault();
+  const email = $('email').value.trim();
+  if (!email) { $('loginError').textContent='Digite seu e-mail acima e toque de novo em "Esqueci minha senha".'; $('loginError').style.display='block'; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  if (error) { $('loginError').textContent = error.message; $('loginError').style.display='block'; return; }
+  $('loginError').style.display='none';
+  $('loginSuccess').textContent='Enviei um link pro seu e-mail. Abra o link pra criar a nova senha.';
+  $('loginSuccess').style.display='block';
+});
+sb.auth.onAuthStateChange(ev => { if (ev === 'PASSWORD_RECOVERY') setTimeout(openPwd, 400); });
 
 // Inicia
 checkSession();
