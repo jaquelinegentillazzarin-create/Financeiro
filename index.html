@@ -46,7 +46,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
 .mrow{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 @media(max-width:760px){nav.tabs,nav{position:fixed;bottom:0;left:0;right:0;top:auto;border-radius:18px 18px 0 0;border:0;padding:6px 6px calc(6px + env(safe-area-inset-bottom));justify-content:space-around}
 .tab{display:flex;flex-direction:column;font-size:11px;padding:6px 10px}.tab::before{margin:0 0 2px;font-size:19px}body{padding-bottom:84px}}
-</style>
+.tab[data-tab="docs"]::before{content:"🗂"}.dcard{padding:12px 0;border-bottom:1px solid var(--line)}.dcard mark{background:#fff3a3}</style>
 </head>
 <body>
 
@@ -74,7 +74,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
     </form>
     <p style="text-align:center;margin-top:14px"><a href="#" id="btnForgot" style="color:#245c4f;font-size:13px;font-weight:650">Esqueci minha senha</a></p>
     <p class="muted" style="text-align:center;margin-top:18px;font-size:12px">
-      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.<br><span style="opacity:.6">versão 11 ✓</span>
+      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.<br><span style="opacity:.6">versão 13 ✓</span>
     </p>
   </div>
 </div>
@@ -133,7 +133,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
   <button class="tab" data-tab="contas">Contas futuras</button>
   <button class="tab" data-tab="analise">Análises</button>
   <button class="tab" data-tab="dados">Backup</button>
-<button class="tab" data-tab="config" type="button">Configurações</button></nav>
+<button class="tab" data-tab="config" type="button">Configurações</button><button class="tab" data-tab="docs" type="button">Documentos</button></nav>
 <div class="monthbar">
   <div><label for="selectedMonth">Mês em análise</label><input type="month" id="selectedMonth"></div>
   <div><label for="filterPerson">Ver gastos de</label>
@@ -281,6 +281,9 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
 <button type="button" class="btn secondary" data-doc="privacidade">Política de Privacidade</button><button type="button" class="btn secondary" data-doc="termos">Termos de Uso</button>
 <button type="button" class="btn secondary" id="setExport">Exportar meus dados</button><button type="button" class="btn danger" id="setWipe">Apagar todos os meus dados</button></div></div>
 </div></section>
+<section class="panel" id="docs"><div class="card"><h2>Documentos importados</h2>
+<input id="docsSearch" placeholder="🔎 Buscar por nome, valor ou qualquer palavra do documento">
+<div id="docsList" style="margin-top:12px"></div></div></section>
 </main>
 <footer>Você no Controle • Dados sincronizados via Supabase<br><a href="#" data-doc="privacidade" style="color:inherit">Política de Privacidade</a> • <a href="#" data-doc="termos" style="color:inherit">Termos de Uso</a> • <a href="#" id="btnWipe" style="color:#b93838">Apagar todos os meus dados</a></footer>
 </div>
@@ -1063,7 +1066,7 @@ privacidade: { titulo: 'Política de Privacidade', html: `
 <p>O responsável (controlador) pelos seus dados pessoais neste aplicativo é ${RESPONSAVEL}. Contato para assuntos de privacidade: <b>${CONTATO_EMAIL}</b>.</p>
 <h3>2. Quais dados coletamos</h3>
 <ul><li><b>Dados da conta:</b> e-mail e senha. A senha é guardada criptografada pelo provedor de autenticação e não conseguimos lê-la.</li>
-<li><b>Dados financeiros que você mesmo cadastra:</b> despesas, cartões, compras parceladas e contas a pagar.</li>
+<li><b>Documentos que você importa (PDF ou foto):</b> a leitura acontece no seu aparelho e só o texto extraído fica guardado na sua conta, para você pesquisar depois.</li>\n<li><b>Dados financeiros que você mesmo cadastra:</b> despesas, cartões, compras parceladas e contas a pagar.</li>
 <li><b>Dados técnicos básicos</b> de acesso (como data e hora de login), gerados pelo provedor de autenticação.</li></ul>
 <p>Não pedimos CPF, endereço, número de cartão nem senhas de banco. Pedimos que você não digite esse tipo de informação nos campos do app.</p>
 <h3>3. Para que usamos e em que base legal</h3>
@@ -1110,9 +1113,9 @@ $('docClose').addEventListener('click', () => $('docModal').classList.add('hidde
 $('btnWipe').addEventListener('click', async e => {
   e.preventDefault();
   if (!confirm('Isso apaga TODAS as despesas, cartões, compras e contas desta conta. Não dá pra desfazer. Continuar?')) return;
-  for (const t of ['bills','purchases','cards','expenses']) {
+  for (const t of ['documents','bills','purchases','cards','expenses']) {
     const { error } = await sb.from(t).delete().eq('user_id', currentUser.id);
-    if (error) { alert('Erro ao apagar: ' + error.message); return; }
+    if (error && t !== 'documents') { alert('Erro ao apagar: ' + error.message); return; }
   }
   await loadAllData();
   alert('Seus dados foram apagados. Pra excluir também o login (e-mail e senha), peça por e-mail em ' + CONTATO_EMAIL + '.');
@@ -1153,6 +1156,133 @@ $('setWipe').addEventListener('click',()=>$('btnWipe').click());
     const{error}=await sb.auth.resend({type:'signup',email:em});$('loginError').style.display='none';$('loginSuccess').textContent=error?error.message:'Reenviei o e-mail de confirmação. Confira a caixa de entrada e o spam.';$('loginSuccess').style.display='block';});
   mode('in');
 })();
+
+// ---- v12: importar boleto / Pix (grátis, tudo no aparelho) ----
+function dayAdd(base,n){const d=new Date(base+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+function parseBoleto(raw){
+  const d=String(raw).replace(/\D/g,'');
+  if(d.length===48&&d[0]==='8'){const b=d.slice(0,11)+d.slice(12,23)+d.slice(24,35)+d.slice(36,47);return{valor:'67'.includes(d[2])?+b.slice(4,15)/100:0,venc:'',nome:'Conta de consumo'};}
+  let bar;
+  if(d.length===47)bar=d.slice(0,4)+d[32]+d.slice(33,47)+d.slice(4,9)+d.slice(10,20)+d.slice(21,31);
+  else if(d.length===44)bar=d;else return null;
+  const fat=+bar.slice(5,9),valor=+bar.slice(9,19)/100;let venc='';
+  if(fat>0){const A=dayAdd('1997-10-07',fat),B=fat>=1000?dayAdd('2025-02-22',fat-1000):A,t=Date.now();
+    venc=Math.abs(new Date(B)-t)<Math.abs(new Date(A)-t)?B:A;}
+  return{valor,venc,nome:'Boleto'};
+}
+function parsePix(raw){
+  const t=String(raw).trim();if(!t.startsWith('000201'))return null;
+  const o={};for(let i=0;i+4<=t.length;){const tag=t.slice(i,i+2),len=+t.slice(i+2,i+4);if(isNaN(len))break;o[tag]=t.slice(i+4,i+4+len);i+=4+len;}
+  return{valor:+(o['54']||0),venc:'',nome:'Pix para '+(o['59']||'recebedor')};
+}
+function parseDoc(raw){return parsePix(raw)||parseBoleto(raw);}
+(function(){
+  const m=document.createElement('div');m.id='impModal';m.className='hidden';
+  m.style.cssText='position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:100;padding:14px';
+  m.innerHTML=`<div style="background:#fff;border-radius:16px;padding:20px;max-width:460px;width:100%;max-height:90vh;overflow:auto">
+  <h2 style="margin:0 0 6px;color:#173e36">📎 Importar boleto ou Pix</h2>
+  <p class="muted" style="margin:0 0 10px;font-size:13px">Cole o número do boleto ou o Pix copia e cola. Tudo é lido no seu aparelho, nada é enviado.</p>
+  <textarea id="impCode" rows="3" placeholder="Linha digitável, código de barras ou Pix copia e cola" style="width:100%;border-radius:12px;border:1px solid #e6eaf1;padding:10px"></textarea>
+  <div class="actions"><button type="button" class="btn secondary" id="impCam" style="flex:1">📷 Ler com a câmera</button><button type="button" class="btn" id="impRead" style="flex:1">Ler</button></div>
+  <video id="impVideo" playsinline muted style="display:none;width:100%;border-radius:12px;margin-top:10px"></video>
+  <div id="impMsg" style="color:#b93838;font-size:13px;margin-top:8px"></div>
+  <div id="impForm" class="hidden formgrid" style="margin-top:10px">
+    <div class="full"><label>Descrição</label><input id="impName"></div>
+    <div><label>Valor (R$)</label><input id="impAmount" type="number" step="0.01"></div>
+    <div><label>Vencimento</label><input id="impDue" type="date"></div>
+    <div class="full"><label>Categoria</label><select id="impCat"></select></div>
+    <div class="full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="impPaid" style="width:auto"> Já foi paga</label></div>
+    <div class="full"><span id="impStatus" class="pill"></span></div>
+    <div class="full"><button type="button" class="btn" id="impSave" style="width:100%">Salvar em Contas</button></div>
+  </div>
+  <button type="button" class="btn secondary" id="impClose" style="width:100%;margin-top:10px">Fechar</button></div>`;
+  document.body.appendChild(m);
+  const f=document.createElement('button');f.id='fabImport';f.type='button';f.textContent='📎 Importar';
+  f.style.cssText='position:fixed;right:16px;bottom:96px;z-index:30;border:0;border-radius:30px;padding:13px 18px;background:#0f766e;color:#fff;font-weight:700;box-shadow:0 8px 22px #0f766e66;cursor:pointer';
+  $('app').appendChild(f);
+  $('impCat').innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
+  let stream=null;const stopCam=()=>{if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}$('impVideo').style.display='none';};
+  const open=()=>{$('impCode').value='';$('impMsg').textContent='';$('impForm').classList.add('hidden');m.classList.remove('hidden');};
+  const close=()=>{stopCam();m.classList.add('hidden');};
+  const status=()=>{const late=$('impDue').value&&$('impDue').value<todayISO()&&!$('impPaid').checked;
+    $('impStatus').textContent=$('impPaid').checked?'✅ Paga':late?'⚠ Atrasada':'🕒 A pagar';
+    if(late&&$('impCat').value!=='Contas atrasadas')$('impCat').value='Contas atrasadas';};
+  function read(){const r=parseDoc($('impCode').value);
+    if(!r){$('impMsg').textContent='Não consegui ler esse código. Confira se copiou o número inteiro.';$('impForm').classList.add('hidden');return;}
+    $('impMsg').textContent=r.valor?'':'Esse código não traz o valor. Preencha abaixo.';
+    $('impName').value=r.nome;$('impAmount').value=r.valor||'';$('impDue').value=r.venc||todayISO();$('impPaid').checked=false;$('impCat').value='Outros';status();$('impForm').classList.remove('hidden');}
+  f.addEventListener('click',open);$('impClose').addEventListener('click',close);$('impRead').addEventListener('click',read);
+  $('impDue').addEventListener('change',status);$('impPaid').addEventListener('change',status);
+  $('impSave').addEventListener('click',async()=>{const amount=Number($('impAmount').value);
+    if(!$('impName').value.trim()||!(amount>0)||!$('impDue').value){$('impMsg').textContent='Preencha descrição, valor e vencimento.';return;}
+    const{error}=await sb.from('bills').insert({name:$('impName').value.trim(),amount,due_date:$('impDue').value,category:$('impCat').value,repeat:'no',paid:$('impPaid').checked});
+    if(error){$('impMsg').textContent='Erro: '+error.message;return;}
+    close();await loadAllData();alert('Conta salva em Contas.');});
+  $('impCam').addEventListener('click',async()=>{
+    if(!('BarcodeDetector' in window)||!navigator.mediaDevices){$('impMsg').textContent='Este navegador não lê código pela câmera. Cole o número acima.';return;}
+    try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});const v=$('impVideo');v.srcObject=stream;v.style.display='block';await v.play();
+      const det=new BarcodeDetector({formats:['itf','code_128','qr_code']});
+      const loop=async()=>{if(!stream)return;try{const c=await det.detect(v);if(c.length){$('impCode').value=c[0].rawValue;stopCam();read();return;}}catch(e){}setTimeout(loop,300);};loop();
+    }catch(e){$('impMsg').textContent='Não consegui abrir a câmera. Libere a permissão ou cole o número.';}});
+})();
+
+// ---- v13: PDF/foto (leitura local) + busca de documentos ----
+const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',PDFW='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',TESS='https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/tesseract.min.js';
+const loadLib=u=>new Promise((ok,no)=>{if(document.querySelector(`script[src="${u}"]`))return ok();const e=document.createElement('script');e.src=u;e.onload=ok;e.onerror=()=>no(new Error('Não consegui carregar o leitor de documentos. Desative o escudo do navegador e tente de novo.'));document.head.appendChild(e);});
+async function ocrImage(src,say){await loadLib(TESS);const r=await Tesseract.recognize(src,'por',{logger:m=>say('Lendo a imagem… '+Math.round((m.progress||0)*100)+'%')});return r.data.text;}
+async function readPdfText(file,say){
+  await loadLib(PDFJS);pdfjsLib.GlobalWorkerOptions.workerSrc=PDFW;
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;let t='';
+  for(let i=1;i<=Math.min(pdf.numPages,5);i++){const pg=await pdf.getPage(i);t+=(await pg.getTextContent()).items.map(x=>x.str).join(' ')+'\n';}
+  if(t.trim().length<30){say('PDF escaneado, lendo como imagem…');const pg=await pdf.getPage(1),vp=pg.getViewport({scale:2}),c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;t=await ocrImage(c,say);}
+  return t;}
+const brNum=x=>parseFloat(String(x).replace(/\./g,'').replace(',','.'));
+const isoBR=x=>{const[d,m,y]=x.split('/');return `${y.length===2?'20'+y:y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;};
+function analyzeText(text,fname){
+  const out={valor:0,venc:'',nome:fname.replace(/\.[^.]+$/,'')||'Documento',paid:false,dest:'bill'};
+  for(const q of (text.match(/\d[\d.\s-]{38,70}\d/g)||[])){const r=parseBoleto(q.replace(/\D/g,''));if(r){Object.assign(out,{valor:r.valor,venc:r.venc});out.hasCode=true;break;}}
+  const kw=text.match(/(valor\s*(?:do\s*documento|total|a\s*pagar|pago)?|total(?:\s*a\s*pagar)?)\s*:?\s*R?\$?\s*([\d.]+,\d{2})/i);
+  const all=[...text.matchAll(/R?\$?\s*(\d{1,3}(?:\.\d{3})*,\d{2})/g)].map(m=>brNum(m[1]));
+  if(!out.valor)out.valor=kw?brNum(kw[2]):(all.length?Math.max(...all):0);
+  out.paid=/comprovante|pagamento\s*(realizado|efetuado)|pago\s*em|autentica[çc][ãa]o/i.test(text);
+  if(!out.venc){const dv=text.match(/vencimento\D{0,25}(\d{2}\/\d{2}\/\d{2,4})/i),dt=text.match(/(\d{2}\/\d{2}\/\d{4})/);const d=dv?dv[1]:dt?dt[1]:'';if(d)out.venc=isoBR(d);}
+  out.dest=out.paid?'expense':'bill';return out;}
+let curDoc=null;
+(function(){
+  $('impMsg').insertAdjacentHTML('beforebegin',`<div class="actions"><label class="btn secondary" style="flex:1;text-align:center;cursor:pointer">📄 PDF ou foto<input id="impFile" type="file" accept="application/pdf,image/*" style="display:none"></label><label class="btn secondary" style="flex:1;text-align:center;cursor:pointer">📸 Tirar foto<input id="impPhoto" type="file" accept="image/*" capture="environment" style="display:none"></label></div>`);
+  $('impPaid').closest('.full').insertAdjacentHTML('beforebegin',`<div class="full"><label>Salvar em</label><select id="impDest"><option value="bill">Contas (a pagar / atrasada)</option><option value="expense">Gastos (já paga)</option></select></div>`);
+  async function onFile(ev){const f=ev.target.files[0];ev.target.value='';if(!f)return;const say=t=>{$('impMsg').style.color='#445';$('impMsg').textContent=t;};
+    try{say('Lendo o documento…');const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);const text=isPdf?await readPdfText(f,say):await ocrImage(f,say);
+      if(text.trim().length<10){$('impMsg').style.color='#b93838';$('impMsg').textContent='Não consegui ler texto nesse arquivo. Tente uma foto mais nítida.';return;}
+      const r=analyzeText(text,f.name);curDoc={name:f.name,kind:isPdf?'pdf':'foto',text};
+      $('impName').value=r.nome;$('impAmount').value=r.valor||'';$('impDue').value=r.venc||todayISO();$('impPaid').checked=r.paid;$('impDest').value=r.dest;$('impCat').value='Outros';
+      $('impDue').dispatchEvent(new Event('change'));$('impForm').classList.remove('hidden');
+      $('impMsg').style.color='#b93838';$('impMsg').textContent=(r.valor&&r.venc?'':'Confira os campos: não achei ')+(!r.valor?'o valor. ':'')+(!r.venc&&r.valor?'o vencimento.':'');
+    }catch(e){$('impMsg').style.color='#b93838';$('impMsg').textContent=e.message||'Erro ao ler o arquivo.';}}
+  $('impFile').addEventListener('change',onFile);$('impPhoto').addEventListener('change',onFile);
+  $('impCode').addEventListener('input',()=>{curDoc=null;});
+  // salvar em Contas ou Gastos (+ guarda o texto do documento para busca)
+  $('impSave').addEventListener('click',async e=>{e.stopImmediatePropagation();
+    const amount=Number($('impAmount').value),name=$('impName').value.trim(),due=$('impDue').value;
+    if(!name||!(amount>0)||!due){$('impMsg').style.color='#b93838';$('impMsg').textContent='Preencha descrição, valor e data.';return;}
+    const dest=$('impDest').value,paid=$('impPaid').checked,cat=$('impCat').value;
+    const r=dest==='expense'?await sb.from('expenses').insert({name,amount,date:due,category:cat==='Contas atrasadas'?'Outros':cat,payment:'Outro',notes:null}):await sb.from('bills').insert({name,amount,due_date:due,category:cat,repeat:'no',paid});
+    if(r.error){$('impMsg').style.color='#b93838';$('impMsg').textContent='Erro: '+r.error.message;return;}
+    if(curDoc){await sb.from('documents').insert({name:curDoc.name,kind:curDoc.kind,content:curDoc.text.slice(0,20000),amount,due_date:due});curDoc=null;}
+    $('impModal').classList.add('hidden');await loadAllData();loadDocs();alert(dest==='expense'?'Salvo em Gastos.':'Salvo em Contas.');},true);
+})();
+let docsData=[];
+async function loadDocs(){const r=await sb.from('documents').select('*').order('created_at',{ascending:false});
+  if(r.error){$('docsList').innerHTML='<p class="muted">A tabela de documentos ainda não foi criada no Supabase (veja o SQL que te passei).</p>';return;}
+  docsData=r.data;renderDocs();}
+function renderDocs(){const q=$('docsSearch').value.trim().toLowerCase();
+  const list=docsData.filter(d=>!q||[d.name,d.content,String(d.amount),d.due_date].join(' ').toLowerCase().includes(q));
+  $('docsList').innerHTML=list.length?list.map(d=>{const c=(d.content||''),i=q?c.toLowerCase().indexOf(q):-1,sn=i>=0?c.slice(Math.max(0,i-40),i+90):c.slice(0,110);
+    return `<div class="dcard"><div style="display:flex;justify-content:space-between;gap:8px"><b>${d.kind==='pdf'?'📄':'🖼'} ${esc(d.name)}</b><button type="button" class="btn danger small" data-deldoc="${d.id}">Excluir</button></div>
+    <div class="muted">${d.due_date?d.due_date.split('-').reverse().join('/'):''} ${d.amount?' • '+money(d.amount):''}</div><div class="muted" style="font-size:12px">…${esc(sn)}…</div></div>`;}).join(''):'<p class="muted">Nenhum documento encontrado.</p>';}
+$('docsSearch').addEventListener('input',renderDocs);
+$('docsList').addEventListener('click',async e=>{const b=e.target.closest('[data-deldoc]');if(!b||!confirm('Excluir este documento?'))return;await sb.from('documents').delete().eq('id',b.dataset.deldoc);loadDocs();});
+document.querySelector('.tab[data-tab="docs"]').addEventListener('click',loadDocs);
 
 // Inicia
 checkSession();
