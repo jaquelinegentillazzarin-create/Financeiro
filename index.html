@@ -116,7 +116,13 @@ label{display:block;font-size:13px;color:#52606d;font-weight:650;margin:0 0 5px}
 </nav>
 <div class="monthbar">
   <div><label for="selectedMonth">Mês em análise</label><input type="month" id="selectedMonth"></div>
-  <div class="muted" id="monthHint">Os dados são separados por mês.</div>
+  <div><label for="filterPerson">Ver gastos de</label>
+    <select id="filterPerson" style="min-width:160px"><option value="">Todos (família inteira)</option></select>
+  </div>
+  <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+    <button type="button" class="btn secondary" id="btnAddPerson">+ Adicionar pessoa</button>
+    <span class="muted" id="monthHint">Os dados são separados por mês.</span>
+  </div>
 </div>
 
 <section class="panel active" id="painel">
@@ -139,6 +145,7 @@ label{display:block;font-size:13px;color:#52606d;font-weight:650;margin:0 0 5px}
       <div class="full"><label for="expenseName">Descrição</label><input id="expenseName" required placeholder="Ex.: mercado, combustível"></div>
       <div><label for="expenseAmount">Valor (R$)</label><input id="expenseAmount" type="number" min="0.01" step="0.01" required placeholder="0,00"></div>
       <div><label for="expenseDate">Data</label><input id="expenseDate" type="date" required></div>
+      <div><label for="expensePerson">Pessoa</label><select id="expensePerson"><option>Família</option></select></div>
       <div><label for="expenseCategory">Categoria</label><select id="expenseCategory"><option>Casa</option><option>Mercado</option><option>Lazer</option><option>Transporte</option><option>Saúde</option><option>Mensais</option><option>Cartões</option><option>Assinaturas</option><option>Educação</option><option>Pets</option><option>Compras</option><option>Outros</option></select></div>
       <div><label for="expensePayment">Pagamento</label><select id="expensePayment"><option>Pix</option><option>Dinheiro</option><option>Débito</option><option>Crédito</option><option>Boleto</option><option>Transferência</option><option>Outro</option></select></div>
       <div class="full"><label for="expenseNotes">Observações (opcional)</label><input id="expenseNotes" placeholder="Detalhes"></div>
@@ -196,6 +203,7 @@ label{display:block;font-size:13px;color:#52606d;font-weight:650;margin:0 0 5px}
       <div class="full"><label for="billName">Nome da conta</label><input id="billName" required placeholder="Ex.: aluguel, internet"></div>
       <div><label for="billAmount">Valor (R$)</label><input id="billAmount" type="number" min=".01" step=".01" required></div>
       <div><label for="billDueDate">Vencimento</label><input id="billDueDate" type="date" required></div>
+      <div><label for="billPerson">Pessoa</label><select id="billPerson"><option>Família</option></select></div>
       <div><label for="billCategory">Categoria</label><select id="billCategory"><option>Mensais</option><option>Casa</option><option>Mercado</option><option>Saúde</option><option>Educação</option><option>Assinaturas</option><option>Outros</option></select></div>
       <div><label for="billRepeat">Repetição</label><select id="billRepeat"><option value="no">Uma vez</option><option value="yes">Mensal</option></select></div>
     </div><div class="actions"><button class="btn" type="submit">Salvar conta</button></div></form>
@@ -281,6 +289,47 @@ const esc = s => String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;'
 
 let data = { expenses: [], cards: [], purchases: [], bills: [] };
 let currentUser = null;
+let members = ['Família']; // pessoas da família
+let filterPerson = ''; // '' = todos
+
+function membersKey() {
+  return 'fnc_members_' + (currentUser?.id || 'guest');
+}
+function loadMembers() {
+  try {
+    const raw = localStorage.getItem(membersKey());
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length) members = arr;
+    }
+  } catch(e) {}
+  if (!members.includes('Família')) members.unshift('Família');
+}
+function saveMembers() {
+  try { localStorage.setItem(membersKey(), JSON.stringify(members)); } catch(e) {}
+}
+function addMember(name) {
+  name = (name || '').trim();
+  if (!name) return false;
+  if (members.some(m => m.toLowerCase() === name.toLowerCase())) return false;
+  members.push(name);
+  saveMembers();
+  return true;
+}
+function fillPersonSelects() {
+  const opts = members.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  ['expensePerson','billPerson','filterPerson'].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    const prev = el.value;
+    if (id === 'filterPerson') {
+      el.innerHTML = `<option value="">Todos (família inteira)</option>` + members.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+    } else {
+      el.innerHTML = opts;
+    }
+    if (prev && [...el.options].some(o => o.value === prev)) el.value = prev;
+  });
+}
 
 // -------------------- AUTH --------------------
 async function checkSession() {
@@ -307,6 +356,8 @@ function showLogin() {
 function showApp() {
   $('loginScreen').classList.add('hidden');
   $('app').classList.remove('hidden');
+  loadMembers();
+  fillPersonSelects();
   $('userEmail').textContent = currentUser?.email || '';
 }
 
@@ -443,8 +494,21 @@ $('purchaseFirstMonth').value = monthISO();
 $('billDueDate').value = todayISO();
 $('selectedMonth').addEventListener('change', render);
 
-function totalExpenses(m) { return data.expenses.filter(e => e.date?.slice(0,7) === m).reduce((s,e) => s + Number(e.amount), 0); }
-function monthExpenses(m) { return data.expenses.filter(e => e.date?.slice(0,7) === m); }
+function getPerson(e) {
+  if (e.person) return e.person;
+  const m = (e.notes || '').match(/^\[pessoa:([^\]]+)\]/i);
+  if (m) return m[1].trim();
+  return 'Família';
+}
+function totalExpenses(m) {
+  return monthExpenses(m).reduce((s,e) => s + Number(e.amount), 0);
+}
+function monthExpenses(m) {
+  let list = data.expenses.filter(e => e.date?.slice(0,7) === m);
+  const fp = filterPerson || $('filterPerson')?.value || '';
+  if (fp) list = list.filter(e => getPerson(e) === fp);
+  return list;
+}
 function installmentsForMonth(m) {
   let out = [];
   for (const p of data.purchases) {
@@ -536,14 +600,19 @@ function renderMonthlyBars(m) {
 
 function expenseRows(arr) {
   if (!arr.length) return '<div class="empty">Nenhum gasto encontrado.</div>';
-  return `<table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Pagamento</th><th class="money">Valor</th><th></th></tr></thead><tbody>${
-    arr.slice().sort((a,b) => b.date.localeCompare(a.date)).map(e => `<tr>
+  return `<table><thead><tr><th>Data</th><th>Pessoa</th><th>Descrição</th><th>Categoria</th><th>Pagamento</th><th class="money">Valor</th><th></th></tr></thead><tbody>${
+    arr.slice().sort((a,b) => b.date.localeCompare(a.date)).map(e => {
+      const person = getPerson(e);
+      const notesClean = (e.notes || '').replace(/^\[pessoa:[^\]]+\]\s*/i, '').trim();
+      return `<tr>
       <td>${e.date.split('-').reverse().join('/')}</td>
-      <td><strong>${esc(e.name)}</strong>${e.notes ? `<div class="muted">${esc(e.notes)}</div>` : ''}</td>
+      <td><span class="pill">${esc(person)}</span></td>
+      <td><strong>${esc(e.name)}</strong>${notesClean ? `<div class="muted">${esc(notesClean)}</div>` : ''}</td>
       <td>${esc(e.category)}</td><td>${esc(e.payment)}</td>
       <td class="money">${money(e.amount)}</td>
       <td style="white-space:nowrap"><button type="button" class="btn secondary small" onclick="editExpense('${e.id}')">✏ Editar</button> <button type="button" class="btn danger small" onclick="deleteExpense('${e.id}')">🗑 Excluir</button></td>
-    </tr>`).join('')
+    </tr>`;
+    }).join('')
   }</tbody></table>`;
 }
 
@@ -559,6 +628,20 @@ function renderCategorySelect() {
   $('filterCategory').value = cats.includes(selected) ? selected : '';
 }
 $('filterCategory').addEventListener('change', () => renderExpenseTable(monthExpenses($('selectedMonth').value)));
+$('filterPerson')?.addEventListener('change', () => {
+  filterPerson = $('filterPerson').value || '';
+  render();
+});
+$('btnAddPerson')?.addEventListener('click', () => {
+  const name = prompt('Nome da pessoa (ex: Maria, João, Filho):');
+  if (!name) return;
+  if (addMember(name.trim())) {
+    fillPersonSelects();
+    alert('Pessoa "' + name.trim() + '" adicionada! Agora você pode vincular gastos a ela.');
+  } else {
+    alert('Essa pessoa já existe ou o nome é inválido.');
+  }
+});
 
 // -------------------- CRUD OPERATIONS (Supabase) --------------------
 let editingId = null;
@@ -606,18 +689,26 @@ $('deleteAllExpenses').addEventListener('click', async () => {
 $('expenseForm').addEventListener('reset', () => setTimeout(() => { $('expenseDate').value = todayISO(); }));
 $('expenseForm').addEventListener('submit', async e => {
   e.preventDefault();
+  const person = ($('expensePerson')?.value || 'Família').trim();
+  let notes = $('expenseNotes').value.trim() || '';
+  // Guarda a pessoa também nas notas (funciona mesmo sem coluna no banco)
+  if (person && person !== 'Família') {
+    notes = notes.replace(/^\[pessoa:[^\]]+\]\s*/i, '');
+    notes = `[pessoa:${person}] ${notes}`.trim();
+  }
   const row = {
     name: $('expenseName').value.trim(),
     amount: Number($('expenseAmount').value),
     date: $('expenseDate').value,
     category: $('expenseCategory').value,
     payment: $('expensePayment').value,
-    notes: $('expenseNotes').value.trim() || null
+    notes: notes || null
   };
   const { error } = await sb.from('expenses').insert(row);
   if (error) { alert('Erro ao salvar: ' + error.message); return; }
   e.target.reset();
   $('expenseDate').value = todayISO();
+  fillPersonSelects();
   await loadAllData();
 });
 
@@ -707,8 +798,9 @@ function renderInstallments(m) {
 
 $('billForm').addEventListener('submit', async e => {
   e.preventDefault();
+  const person = ($('billPerson')?.value || 'Família').trim();
   const row = {
-    name: $('billName').value.trim(),
+    name: $('billName').value.trim() + (person && person !== 'Família' ? ` (${person})` : ''),
     amount: Number($('billAmount').value),
     due_date: $('billDueDate').value,
     category: $('billCategory').value,
@@ -719,6 +811,7 @@ $('billForm').addEventListener('submit', async e => {
   if (error) { alert('Erro: ' + error.message); return; }
   e.target.reset();
   $('billDueDate').value = todayISO();
+  fillPersonSelects();
   await loadAllData();
 });
 
