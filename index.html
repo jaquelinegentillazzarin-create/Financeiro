@@ -166,8 +166,8 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
       <div><label for="expenseAmount">Valor (R$)</label><input id="expenseAmount" type="number" min="0.01" step="0.01" required placeholder="0,00"></div>
       <div><label for="expenseDate">Data</label><input id="expenseDate" type="date" required></div>
       <div><label for="expensePerson">Pessoa</label><select id="expensePerson"><option>Família</option></select></div>
-      <div><label for="expenseCategory">Categoria</label><select id="expenseCategory"><option>Casa</option><option>Mercado</option><option>Lazer</option><option>Transporte</option><option>Saúde</option><option>Mensais</option><option>Cartões</option><option>Assinaturas</option><option>Educação</option><option>Pets</option><option>Compras</option><option>Outros</option></select></div>
-      <div><label for="expensePayment">Pagamento</label><select id="expensePayment"><option>Pix</option><option>Dinheiro</option><option>Débito</option><option>Crédito</option><option>Boleto</option><option>Transferência</option><option>Outro</option></select></div>
+      <div><label for="expenseCategory">Categoria</label><select id="expenseCategory"><option>Casa</option><option>Mercado</option><option>Lazer</option><option>Transporte</option><option>Saúde</option><option>Mensais</option><option>Cartões</option><option>Assinaturas</option><option>Educação</option><option>Pets</option><option>Compras</option><option>Contas atrasadas</option><option>Outros</option></select></div>
+      <div><label for="expensePayment">Pagamento</label><select id="expensePayment"><option>Pix</option><option>Dinheiro</option><option>Débito</option><option>Crédito</option><option>Crédito parcelado</option><option>Boleto</option><option>Carnê</option><option>Transferência</option><option>Outro</option></select></div>
       <div class="full"><label for="expenseNotes">Observações (opcional)</label><input id="expenseNotes" placeholder="Detalhes"></div>
     </div><div class="actions"><button class="btn" type="submit">Salvar gasto</button><button class="btn secondary" type="reset">Limpar</button></div></form>
   </div>
@@ -203,7 +203,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
       <div><label for="purchaseTotal">Valor total (R$)</label><input id="purchaseTotal" type="number" min=".01" step=".01" required></div>
       <div><label for="purchaseInstallments">Número de parcelas</label><input id="purchaseInstallments" type="number" min="1" max="120" value="1" required></div>
       <div><label for="purchaseFirstMonth">Mês da 1ª parcela</label><input id="purchaseFirstMonth" type="month" required></div>
-      <div><label for="purchaseCategory">Categoria</label><select id="purchaseCategory"><option>Casa</option><option>Mercado</option><option>Lazer</option><option>Transporte</option><option>Saúde</option><option>Mensais</option><option>Compras</option><option>Outros</option></select></div>
+      <div><label for="purchaseCategory">Categoria</label><select id="purchaseCategory"><option>Casa</option><option>Mercado</option><option>Lazer</option><option>Transporte</option><option>Saúde</option><option>Mensais</option><option>Cartões</option><option>Assinaturas</option><option>Educação</option><option>Pets</option><option>Compras</option><option>Contas atrasadas</option><option>Outros</option></select></div>
     </div><div class="actions"><button class="btn" type="submit">Adicionar compra</button></div>
     <p class="muted">As parcelas são distribuídas nos meses futuros. Não entram como gasto comum.</p></form>
   </div>
@@ -224,7 +224,8 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
       <div><label for="billAmount">Valor (R$)</label><input id="billAmount" type="number" min=".01" step=".01" required></div>
       <div><label for="billDueDate">Vencimento</label><input id="billDueDate" type="date" required></div>
       <div><label for="billPerson">Pessoa</label><select id="billPerson"><option>Família</option></select></div>
-      <div><label for="billCategory">Categoria</label><select id="billCategory"><option>Mensais</option><option>Casa</option><option>Mercado</option><option>Saúde</option><option>Educação</option><option>Assinaturas</option><option>Outros</option></select></div>
+      <div><label for="billCategory">Categoria</label><select id="billCategory"><option>Casa</option><option>Mercado</option><option>Lazer</option><option>Transporte</option><option>Saúde</option><option>Mensais</option><option>Cartões</option><option>Assinaturas</option><option>Educação</option><option>Pets</option><option>Compras</option><option>Contas atrasadas</option><option>Outros</option></select></div>
+      <div><label for="billPayment">Forma de pagamento</label><select id="billPayment"><option>Pix</option><option>Dinheiro</option><option>Débito</option><option>Crédito</option><option>Crédito parcelado</option><option>Boleto</option><option>Carnê</option><option>Transferência</option><option>Outro</option></select></div>
       <div><label for="billRepeat">Repetição</label><select id="billRepeat"><option value="no">Uma vez</option><option value="yes">Mensal</option></select></div>
     </div><div class="actions"><button class="btn" type="submit">Salvar conta</button></div></form>
   </div>
@@ -443,7 +444,7 @@ $('btnSignup').addEventListener('click', async () => {
     $('loginError').style.display = 'block';
     return;
   }
-  $('loginSuccess').textContent = 'Conta criada! Se pedir confirmação, abra o e-mail que enviamos (veja o spam) e confirme. Depois clique em Entrar.';
+  $('loginSuccess').textContent = 'Conta criada com sucesso! Agora clique em Entrar para acessar o app.';
   $('loginSuccess').style.display = 'block';
 });
 
@@ -832,8 +833,13 @@ function renderInstallments(m) {
 $('billForm').addEventListener('submit', async e => {
   e.preventDefault();
   const person = ($('billPerson')?.value || 'Família').trim();
+  const pay = ($('billPayment')?.value || 'Pix').trim();
+  let name = $('billName').value.trim();
+  if (person && person !== 'Família') name += ` (${person})`;
+  // guarda forma de pagamento no nome de forma legível (sem precisar de coluna nova)
+  if (pay) name += ` · ${pay}`;
   const row = {
-    name: $('billName').value.trim() + (person && person !== 'Família' ? ` (${person})` : ''),
+    name: name,
     amount: Number($('billAmount').value),
     due_date: $('billDueDate').value,
     category: $('billCategory').value,
@@ -899,6 +905,22 @@ function renderBills() {
 window.toggleBill = async id => {
   const b = data.bills.find(x => x.id === id);
   if (!b) return;
+
+  // Ao marcar como paga, pergunta a forma de pagamento
+  if (!b.paid) {
+    const formas = ['Pix','Dinheiro','Débito','Crédito','Crédito parcelado','Boleto','Carnê','Transferência','Outro'];
+    const escolha = prompt('Forma de pagamento desta conta:\n' + formas.map((f,i)=> (i+1)+'. '+f).join('\n') + '\n\nDigite o número ou o nome:', '1');
+    if (escolha === null) return; // cancelou
+    let pay = escolha.trim();
+    const n = parseInt(pay, 10);
+    if (n >= 1 && n <= formas.length) pay = formas[n-1];
+    else if (!formas.some(f => f.toLowerCase() === pay.toLowerCase())) pay = 'Outro';
+    else pay = formas.find(f => f.toLowerCase() === pay.toLowerCase()) || pay;
+    // anota no nome se ainda não tiver
+    if (b.name && !b.name.includes('·')) {
+      try { await sb.from('bills').update({ name: b.name + ' · ' + pay }).eq('id', id); } catch(e) {}
+    }
+  }
 
   let updates = {};
   if (b.repeat === 'yes') {
@@ -1145,7 +1167,7 @@ $('setWipe').addEventListener('click',()=>$('btnWipe').click());
   const form=$('loginForm'),sub=form.querySelector('button[type=submit]'),pw=$('password'),ac=$('aceite').closest('label'),fg=$('btnForgot').parentElement;
   const p2=document.createElement('div');p2.innerHTML='<label for="password2">Repita a senha</label><input type="password" id="password2" autocomplete="new-password" placeholder="Repita a senha">';pw.parentElement.after(p2);
   const info=document.createElement('p');info.className='muted';info.style.cssText='font-size:13px;margin:0 0 12px';
-  info.innerHTML='Depois de criar a conta, enviamos um <b>e-mail de confirmação</b>. Abra o link (veja também o spam) e volte aqui pra entrar. <a href="#" id="resend" style="color:#0f766e;font-weight:700">Reenviar e-mail</a>';p2.after(info);
+  info.innerHTML='Depois de criar a conta, clique em <b>Entrar</b> com o mesmo e-mail e senha. <a href="#" id="resend" style="color:#0f766e;font-weight:700">Reenviar e-mail</a>';p2.after(info);
   const seg=document.createElement('div');seg.className='seg';seg.innerHTML='<button type="button" data-m="in" class="on">Entrar</button><button type="button" data-m="up">Criar conta</button>';form.prepend(seg);
   function mode(m){const up=m==='up';seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
     [p2,info,ac,$('btnSignup')].forEach(e=>e.style.display=up?'':'none');sub.style.display=up?'none':'';fg.style.display=up?'none':'';
@@ -1153,7 +1175,7 @@ $('setWipe').addEventListener('click',()=>$('btnWipe').click());
   seg.addEventListener('click',e=>{const b=e.target.closest('button');if(b)mode(b.dataset.m);});
   $('btnSignup').addEventListener('click',e=>{if($('password2').value!==pw.value){e.stopImmediatePropagation();$('loginError').textContent='As senhas não são iguais.';$('loginError').style.display='block';}},true);
   $('resend').addEventListener('click',async e=>{e.preventDefault();const em=$('email').value.trim();if(!em){$('loginError').textContent='Digite seu e-mail acima.';$('loginError').style.display='block';return;}
-    const{error}=await sb.auth.resend({type:'signup',email:em});$('loginError').style.display='none';$('loginSuccess').textContent=error?error.message:'Reenviei o e-mail de confirmação. Confira a caixa de entrada e o spam.';$('loginSuccess').style.display='block';});
+    const{error}=await sb.auth.resend({type:'signup',email:em});$('loginError').style.display='none';$('loginSuccess').textContent=error?error.message:'Se precisar, use Entrar com e-mail e senha. A confirmação por e-mail está desligada neste projeto.';$('loginSuccess').style.display='block';});
   mode('in');
 })();
 
