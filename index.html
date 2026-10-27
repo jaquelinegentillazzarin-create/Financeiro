@@ -1269,7 +1269,6 @@ $('setWipe').addEventListener('click',()=>$('btnWipe').click());
     $('loginError').style.display='none';$('loginSuccess').style.display='none';}
   seg.addEventListener('click',e=>{const b=e.target.closest('button');if(b)mode(b.dataset.m);});
   $('btnSignup').addEventListener('click',e=>{if($('password2').value!==pw.value){e.stopImmediatePropagation();$('loginError').textContent='As senhas não são iguais.';$('loginError').style.display='block';}},true);
-$('loginError').style.display='none';$('loginSuccess').textContent=error?error.message:'Se precisar, use Entrar com e-mail e senha. A confirmação por e-mail está desligada neste projeto.';$('loginSuccess').style.display='block';});
   mode('in');
 })();
 
