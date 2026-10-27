@@ -46,7 +46,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
 .mrow{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 @media(max-width:760px){nav.tabs,nav{position:fixed;bottom:0;left:0;right:0;top:auto;border-radius:18px 18px 0 0;border:0;padding:6px 6px calc(6px + env(safe-area-inset-bottom));justify-content:space-around}
 .tab{display:flex;flex-direction:column;font-size:11px;padding:6px 10px}.tab::before{margin:0 0 2px;font-size:19px}body{padding-bottom:84px}}
-.tab[data-tab="docs"]::before{content:"🗂"}.dcard{padding:12px 0;border-bottom:1px solid var(--line)}.dcard mark{background:#fff3a3}</style>
+.tab[data-tab="docs"]::before{content:"🗂"}.dcard{padding:12px 0;border-bottom:1px solid var(--line)}.dcard mark{background:#fff3a3}.tab[data-tab="invest"]::before{content:"💰"}</style>
 </head>
 <body>
 
@@ -74,7 +74,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
     </form>
     <p style="text-align:center;margin-top:14px"><a href="#" id="btnForgot" style="color:#245c4f;font-size:13px;font-weight:650">Esqueci minha senha</a></p>
     <p class="muted" style="text-align:center;margin-top:18px;font-size:12px">
-      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.<br><span style="opacity:.6">versão 13 ✓</span>
+      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.<br><span style="opacity:.6">versão 17 ✓</span>
     </p>
   </div>
 </div>
@@ -133,7 +133,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
   <button class="tab" data-tab="contas">Contas futuras</button>
   <button class="tab" data-tab="analise">Análises</button>
   <button class="tab" data-tab="dados">Backup</button>
-<button class="tab" data-tab="config" type="button">Configurações</button><button class="tab" data-tab="docs" type="button">Documentos</button><button class="tab" data-tab="site" type="button">Site</button><button class="tab" data-tab="curso" type="button">Curso</button><button class="tab" data-tab="sac" type="button">SAC</button></nav>
+<button class="tab" data-tab="config" type="button">Configurações</button><button class="tab" data-tab="docs" type="button">Documentos</button><button class="tab" data-tab="site" type="button">Site</button><button class="tab" data-tab="curso" type="button">Curso</button><button class="tab" data-tab="sac" type="button">SAC</button><button class="tab" data-tab="invest" type="button">Investimentos</button></nav>
 <div class="monthbar">
   <div><label for="selectedMonth">Mês em análise</label><input type="month" id="selectedMonth"></div>
   <div><label for="filterPerson">Ver gastos de</label>
@@ -278,6 +278,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
 <div class="card span-8"><h2>Pessoas da família</h2><div id="memberList"></div>
 <div class="actions"><input id="newMember" placeholder="Nome da pessoa" style="max-width:240px"><button type="button" class="btn" id="addMemberBtn">+ Adicionar</button></div>
 <p class="muted">Aparecem nos gastos e contas e sincronizam entre os aparelhos.</p></div>
+<div class="card span-4"><h2>Ajuda / SAC</h2><p class="muted">Dúvidas, problemas ou pedidos sobre seus dados? Fale com a gente:</p><p><a id="sacLink" href="mailto:jaquelinegentil2@gmail.com?subject=Ajuda%20-%20Voc%C3%AA%20no%20Controle" style="color:#0f766e;font-weight:700;word-break:break-all">jaquelinegentil2@gmail.com</a></p></div>
 <div class="card span-8"><h2>Privacidade e dados</h2><div class="actions">
 <button type="button" class="btn secondary" data-doc="privacidade">Política de Privacidade</button><button type="button" class="btn secondary" data-doc="termos">Termos de Uso</button>
 <button type="button" class="btn secondary" id="setExport">Exportar meus dados</button><button type="button" class="btn danger" id="setWipe">Apagar todos os meus dados</button></div></div>
@@ -380,6 +381,23 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
 </div>
 </section>
 
+<section class="panel" id="invest"><div class="grid">
+<div class="card span-12"><h2>Saldo e investimentos</h2><p class="muted">Cadastre o dinheiro que você tem <b>em conta</b> (corrente, poupança, carteira) e o que está <b>investido</b>. Os valores são atualizados por você.</p>
+<div class="grid" style="margin-top:8px">
+<div class="card span-4"><small class="muted">💰 SALDO EM CONTA</small><div id="vSaldo" style="font-size:24px;font-weight:800">R$ 0,00</div><small class="muted">Dinheiro disponível hoje</small></div>
+<div class="card span-4"><small class="muted">📈 TOTAL INVESTIDO</small><div id="vInvest" style="font-size:24px;font-weight:800">R$ 0,00</div><small class="muted">Aplicações e reservas</small></div>
+<div class="card span-4"><small class="muted">🏦 PATRIMÔNIO TOTAL</small><div id="vTotal" style="font-size:24px;font-weight:800">R$ 0,00</div><small class="muted">Saldo em conta + investido</small></div>
+</div>
+<p style="margin:12px 0 0"><b>Contas a pagar neste mês:</b> <span id="vPagar">R$ 0,00</span> &nbsp;•&nbsp; <b>Sobra prevista:</b> <span id="vSobra">R$ 0,00</span><br><small class="muted">Sobra prevista = saldo em conta − contas a pagar no mês selecionado.</small></p></div>
+<div class="card span-4"><h2>Adicionar</h2><form id="assetForm"><div class="formgrid">
+<div class="full"><label for="assetName">Nome</label><input id="assetName" required placeholder="Ex.: Nubank, Poupança, CDB"></div>
+<div class="full"><label for="assetKind">Tipo</label><select id="assetKind"><option value="conta">Saldo em conta</option><option value="investimento">Investimento</option></select></div>
+<div><label for="assetAmount">Valor (R$)</label><input id="assetAmount" type="number" step="0.01" min="0" required></div>
+<div><label for="assetInst">Instituição</label><input id="assetInst" placeholder="Opcional"></div>
+<div class="full"><label for="assetNotes">Observações</label><input id="assetNotes" placeholder="Opcional"></div>
+</div><div class="actions"><button class="btn" type="submit">Salvar</button></div></form></div>
+<div class="card span-8"><h2>Meus saldos e investimentos</h2><div class="tablewrap" id="assetTable"></div></div>
+</div></section>
 </main>
 <footer>Você no Controle • Dados sincronizados via Supabase<br><a href="#" data-doc="privacidade" style="color:inherit">Política de Privacidade</a> • <a href="#" data-doc="termos" style="color:inherit">Termos de Uso</a> • <a href="#" id="btnWipe" style="color:#b93838">Apagar todos os meus dados</a></footer>
 </div>
@@ -504,8 +522,7 @@ $('loginForm').addEventListener('submit', async e => {
   $('btnLogin').textContent = 'Entrar';
 
   if (error) {
-    $('loginError').textContent = error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message;
-    $('loginError').style.display = 'block';
+    showLoginError(error, email);
     return;
   }
   currentUser = authData.user;
@@ -896,7 +913,7 @@ function renderCards() {
           <div><strong>${esc(c.name)}</strong> ${c.bank ? `<span class="muted">· ${esc(c.bank)}</span>` : ''}
             <div class="muted">${c.limit ? `Limite: ${money(c.limit)} · Parcelas a pagar: ${money(cardCommitted(c.id))} · Disponível: ${money(c.limit - cardCommitted(c.id))} · ` : ''}${c.closing ? `Fecha dia ${c.closing} · ` : ''}${c.due ? `Vence dia ${c.due}` : ''}</div>
           </div>
-          <button class="btn danger small" onclick="deleteCard('${c.id}')">Excluir</button>
+          <button type="button" class="btn secondary small" onclick="editEntity('card','${c.id}')">✏ Editar</button> <button class="btn danger small" onclick="deleteCard('${c.id}')">Excluir</button>
         </div>
       </div>`).join('')
     : '<div class="empty">Nenhum cartão cadastrado.</div>';
@@ -920,7 +937,7 @@ function renderInstallments(m) {
   }
   $('installmentTable').innerHTML = rows.length
     ? `<table><thead><tr><th>Mês</th><th>Cartão</th><th>Compra</th><th>Parcela</th><th class="money">Valor</th><th></th></tr></thead><tbody>${
-        rows.map(({month,p,c}) => `<tr><td>${esc(monthLabel(month))}</td><td>${esc(c?.name||'Cartão removido')}</td><td>${esc(p.name)}</td><td>${p.part}/${p.installments}</td><td class="money">${money(p.partAmount)}</td><td><button type="button" class="btn danger small" onclick="deletePurchase('${p.id}')">🗑 Excluir compra</button></td></tr>`).join('')
+        rows.map(({month,p,c}) => `<tr><td>${esc(monthLabel(month))}</td><td>${esc(c?.name||'Cartão removido')}</td><td>${esc(p.name)}</td><td>${p.part}/${p.installments}</td><td class="money">${money(p.partAmount)}</td><td style="white-space:nowrap"><button type="button" class="btn secondary small" onclick="editEntity('purchase','${p.id}')">✏ Editar</button> <button type="button" class="btn danger small" onclick="deletePurchase('${p.id}')">🗑 Excluir compra</button></td></tr>`).join('')
       }</tbody></table>`
     : '<div class="empty">Cadastre compras parceladas para ver as faturas previstas.</div>';
 }
@@ -991,6 +1008,7 @@ function renderBills() {
       <div class="bill-actions">
         <button type="button" class="btn pay" onclick="toggleBill('${b.id}')">${payLabel}</button>
         ${isRecurring ? `<button type="button" class="btn" style="background:#eef1f4;color:#44515e" onclick="undoBill('${b.id}')">↩ Desfazer pagamento</button>` : ''}
+        <button type="button" class="btn" style="background:#e7f4f1;color:#0f766e" onclick="editEntity('bill','${b.id}')">✏ Editar conta</button>
         <button type="button" class="btn delete" onclick="deleteBill('${b.id}')">🗑 Excluir conta</button>
       </div>
     </article>`;
@@ -1158,16 +1176,6 @@ $('btnSavePwd').addEventListener('click', async () => {
   $('pwdMsg').style.color='#185d3b'; $('pwdMsg').textContent='Senha alterada!';
   setTimeout(() => $('pwdModal').classList.add('hidden'), 1200);
 });
-$('btnForgot').addEventListener('click', async e => {
-  e.preventDefault();
-  const email = $('email').value.trim();
-  if (!email) { $('loginError').textContent='Digite seu e-mail acima e toque de novo em "Esqueci minha senha".'; $('loginError').style.display='block'; return; }
-  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
-  if (error) { $('loginError').textContent = error.message; $('loginError').style.display='block'; return; }
-  $('loginError').style.display='none';
-  $('loginSuccess').textContent='Enviei um link pro seu e-mail. Abra o link pra criar a nova senha.';
-  $('loginSuccess').style.display='block';
-});
 sb.auth.onAuthStateChange(ev => {
   if (ev === 'PASSWORD_RECOVERY') setTimeout(openPwd, 400);
   if (ev === 'SIGNED_OUT' && currentUser) { currentUser = null; $('password').value = ''; showLogin(); }
@@ -1175,7 +1183,7 @@ sb.auth.onAuthStateChange(ev => {
 
 // ---- LGPD ----
 const RESPONSAVEL = 'Jaqueline Gentil Correia';
-const CONTATO_EMAIL = 'jaquelinegentillazzarin@gmail.com';
+const CONTATO_EMAIL = 'jaquelinegentil2@gmail.com';
 const DOCS = {
 privacidade: { titulo: 'Política de Privacidade', html: `
 <p><b>Última atualização:</b> 19/10/2026</p>
@@ -1183,11 +1191,11 @@ privacidade: { titulo: 'Política de Privacidade', html: `
 <p>O responsável (controlador) pelos seus dados pessoais neste aplicativo é ${RESPONSAVEL}. Contato para assuntos de privacidade: <b>${CONTATO_EMAIL}</b>.</p>
 <h3>2. Quais dados coletamos</h3>
 <ul><li><b>Dados da conta:</b> e-mail e senha. A senha é guardada criptografada pelo provedor de autenticação e não conseguimos lê-la.</li>
-<li><b>Documentos que você importa (PDF ou foto):</b> a leitura acontece no seu aparelho e só o texto extraído fica guardado na sua conta, para você pesquisar depois.</li>\n<li><b>Dados financeiros que você mesmo cadastra:</b> despesas, cartões, compras parceladas e contas a pagar.</li>
+<li><b>Documentos que você importa (PDF ou foto):</b> a leitura acontece no seu aparelho e só o texto extraído fica guardado na sua conta, para você pesquisar depois.</li>\n<li><b>Dados financeiros que você mesmo cadastra:</b> despesas, cartões, compras parceladas, contas a pagar, saldos em conta e investimentos.</li>
 <li><b>Dados técnicos básicos</b> de acesso (como data e hora de login), gerados pelo provedor de autenticação.</li></ul>
 <p>Não pedimos CPF, endereço, número de cartão nem senhas de banco. Pedimos que você não digite esse tipo de informação nos campos do app.</p>
 <h3>3. Para que usamos e em que base legal</h3>
-<p>Usamos seus dados para criar e manter sua conta, salvar e mostrar seus lançamentos em todos os seus aparelhos, recuperar a senha e manter o serviço seguro. As bases legais são a execução do serviço que você solicitou (art. 7º, V, da LGPD) e o seu consentimento dado no cadastro (art. 7º, I). <b>Não vendemos seus dados e não os usamos para publicidade.</b></p>
+<p>Usamos seus dados para criar e manter sua conta, salvar e mostrar seus lançamentos em todos os seus aparelhos, alterar a senha e manter o serviço seguro. As bases legais são a execução do serviço que você solicitou (art. 7º, V, da LGPD) e o seu consentimento dado no cadastro (art. 7º, I). <b>Não vendemos seus dados e não os usamos para publicidade.</b></p>
 <h3>4. Com quem os dados são compartilhados</h3>
 <p>Usamos provedores que armazenam e processam os dados em nosso nome: <b>Supabase</b> (banco de dados e autenticação) e <b>GitHub Pages</b> (hospedagem do site). Os servidores desses provedores podem estar fora do Brasil, o que caracteriza transferência internacional de dados (art. 33 da LGPD). Também podemos compartilhar dados com autoridades quando a lei exigir.</p>
 <h3>5. Acesso técnico da responsável</h3>
@@ -1230,9 +1238,9 @@ $('docClose').addEventListener('click', () => $('docModal').classList.add('hidde
 $('btnWipe').addEventListener('click', async e => {
   e.preventDefault();
   if (!confirm('Isso apaga TODAS as despesas, cartões, compras e contas desta conta. Não dá pra desfazer. Continuar?')) return;
-  for (const t of ['documents','bills','purchases','cards','expenses']) {
+  for (const t of ['assets','documents','bills','purchases','cards','expenses']) {
     const { error } = await sb.from(t).delete().eq('user_id', currentUser.id);
-    if (error && t !== 'documents') { alert('Erro ao apagar: ' + error.message); return; }
+    if (error && t !== 'documents' && t !== 'assets') { alert('Erro ao apagar: ' + error.message); return; }
   }
   await loadAllData();
   alert('Seus dados foram apagados. Pra excluir também o login (e-mail e senha), peça por e-mail em ' + CONTATO_EMAIL + '.');
@@ -1393,11 +1401,103 @@ async function loadDocs(){const r=await sb.from('documents').select('*').order('
 function renderDocs(){const q=$('docsSearch').value.trim().toLowerCase();
   const list=docsData.filter(d=>!q||[d.name,d.content,String(d.amount),d.due_date].join(' ').toLowerCase().includes(q));
   $('docsList').innerHTML=list.length?list.map(d=>{const c=(d.content||''),i=q?c.toLowerCase().indexOf(q):-1,sn=i>=0?c.slice(Math.max(0,i-40),i+90):c.slice(0,110);
-    return `<div class="dcard"><div style="display:flex;justify-content:space-between;gap:8px"><b>${d.kind==='pdf'?'📄':'🖼'} ${esc(d.name)}</b><button type="button" class="btn danger small" data-deldoc="${d.id}">Excluir</button></div>
+    return `<div class="dcard"><div style="display:flex;justify-content:space-between;gap:8px"><b>${d.kind==='pdf'?'📄':'🖼'} ${esc(d.name)}</b><button type="button" class="btn secondary small" onclick="editEntity('doc','${d.id}')">✏ Editar</button> <button type="button" class="btn danger small" data-deldoc="${d.id}">Excluir</button></div>
     <div class="muted">${d.due_date?d.due_date.split('-').reverse().join('/'):''} ${d.amount?' • '+money(d.amount):''}</div><div class="muted" style="font-size:12px">…${esc(sn)}…</div></div>`;}).join(''):'<p class="muted">Nenhum documento encontrado.</p>';}
 $('docsSearch').addEventListener('input',renderDocs);
 $('docsList').addEventListener('click',async e=>{const b=e.target.closest('[data-deldoc]');if(!b||!confirm('Excluir este documento?'))return;await sb.from('documents').delete().eq('id',b.dataset.deldoc);loadDocs();});
 document.querySelector('.tab[data-tab="docs"]').addEventListener('click',loadDocs);
+
+// ---- v13b: erros de login claros + olhinho na senha ----
+function showLoginError(error, email) {
+  const m = String(error.message || error), box = $('loginError');
+  let html;
+  if (/invalid login credentials/i.test(m)) html = 'E-mail ou senha incorretos. Confira a senha pelo olhinho 👁 ou toque em <b>Esqueci minha senha</b>.';
+  else if (/not confirmed/i.test(m)) html = 'Sua conta ainda não está liberada. Fale com o suporte: ' + esc(CONTATO_EMAIL);
+  else if (/api key|apikey|jwt|legacy/i.test(m)) html = 'Problema de configuração do app (chave do Supabase). Fale com o suporte. <small>Detalhe: ' + esc(m) + '</small>';
+  else if (/failed to fetch|network|load failed/i.test(m)) html = 'Sem conexão com o servidor. Confira a internet e desative o escudo/bloqueador do navegador para este site.';
+  else if (/rate limit|too many|security purposes/i.test(m)) html = 'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.';
+  else html = esc(m);
+  box.innerHTML = html; box.style.display = 'block';
+}
+document.querySelectorAll('input[type=password]').forEach(inp => {
+  const w = document.createElement('div'); w.style.position = 'relative';
+  inp.parentNode.insertBefore(w, inp); w.appendChild(inp); inp.style.paddingRight = '48px';
+  const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', 'Mostrar ou ocultar senha'); b.textContent = '👁';
+  b.style.cssText = 'position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:transparent;font-size:20px;cursor:pointer;padding:6px 8px;line-height:1';
+  b.addEventListener('click', () => { const show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; b.textContent = show ? '🙈' : '👁'; });
+  w.appendChild(b);
+});
+
+// ---- v14: editar contas, cartões e compras ----
+const ENT={
+ bill:{t:'bills',title:'Editar conta',list:()=>data.bills,f:[['name','Descrição','text'],['amount','Valor (R$)','number'],['dueDate','Vencimento','date'],['category','Categoria','cat'],['repeat','Repetição','rep'],['paid','Já foi paga','bool']],
+  db:v=>({name:v.name,amount:+v.amount,due_date:v.dueDate,category:v.category,repeat:v.repeat,paid:v.paid})},
+ card:{t:'cards',title:'Editar cartão',list:()=>data.cards,f:[['name','Nome do cartão','text'],['bank','Banco','text'],['limit','Limite (R$)','number'],['closing','Dia do fechamento','number'],['due','Dia do vencimento','number']],
+  db:v=>({name:v.name,bank:v.bank||null,limit_amount:v.limit===''?null:+v.limit,closing:v.closing===''?null:+v.closing,due:v.due===''?null:+v.due})},
+ purchase:{t:'purchases',title:'Editar compra parcelada',list:()=>data.purchases,f:[['name','Descrição','text'],['cardId','Cartão','card'],['total','Valor total (R$)','number'],['installments','Nº de parcelas','number'],['firstMonth','Primeira parcela','month'],['category','Categoria','cat']],
+  db:v=>({name:v.name,card_id:v.cardId,total:+v.total,installments:+v.installments,first_month:v.firstMonth,category:v.category})}
+};
+ENT.doc={t:'documents',title:'Editar documento',list:()=>docsData,f:[['name','Nome','text'],['due_date','Data do documento','date']],db:v=>({name:v.name,due_date:v.due_date||null})};
+ENT.asset={t:'assets',title:'Editar saldo/investimento',list:()=>assetsData,f:[['name','Nome','text'],['kind','Tipo','kind'],['institution','Instituição','text'],['amount','Valor (R$)','number'],['notes','Observações','text']],db:v=>({name:v.name,kind:v.kind,institution:v.institution||null,amount:+v.amount,notes:v.notes||null})};
+let entEd=null;
+(function(){
+  const m=document.createElement('div');m.id='entModal';m.className='hidden';
+  m.style.cssText='position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:100;padding:14px';
+  m.innerHTML='<div style="background:#fff;border-radius:16px;padding:20px;max-width:440px;width:100%;max-height:90vh;overflow:auto"><h2 id="entTitle" style="margin:0 0 10px;color:#173e36"></h2><div id="entBody" class="formgrid"></div><div id="entMsg" style="color:#b93838;font-size:13px;margin-top:8px"></div><div class="actions"><button type="button" class="btn" id="entSave" style="flex:1">Salvar alterações</button><button type="button" class="btn secondary" id="entCancel" style="flex:1">Cancelar</button></div></div>';
+  document.body.appendChild(m);
+  $('entCancel').addEventListener('click',()=>m.classList.add('hidden'));
+  $('entSave').addEventListener('click',async()=>{
+    const cfg=ENT[entEd.k],v={};
+    for(const [key,,type] of cfg.f){const el=$('ent_'+key);v[key]=type==='bool'?el.checked:el.value.trim?el.value.trim():el.value;}
+    if(!v.name||(cfg.f.some(x=>x[0]==='amount')&&!(+v.amount>0))||(cfg.f.some(x=>x[0]==='total')&&!(+v.total>0))){$('entMsg').textContent='Preencha descrição e valor.';return;}
+    const {error}=await sb.from(cfg.t).update(cfg.db(v)).eq('id',entEd.id);
+    if(error){$('entMsg').textContent='Erro: '+error.message;return;}
+    m.classList.add('hidden');await loadAllData();loadDocs();loadAssets();});
+})();
+window.editEntity=(k,id)=>{
+  const cfg=ENT[k],o=cfg.list().find(x=>x.id===id);if(!o)return;entEd={k,id};
+  $('entTitle').textContent=cfg.title;$('entMsg').textContent='';
+  $('entBody').innerHTML=cfg.f.map(([key,label,type])=>{const val=o[key]??'',id='ent_'+key;let inp;
+    if(type==='cat')inp=`<select id="${id}">${(CATS.includes(val)?CATS:[...CATS,val]).map(c=>`<option ${c===val?'selected':''}>${esc(c)}</option>`).join('')}</select>`;
+    else if(type==='rep')inp=`<select id="${id}"><option value="no" ${val!=='yes'?'selected':''}>Uma vez</option><option value="yes" ${val==='yes'?'selected':''}>Mensal</option></select>`;
+    else if(type==='card')inp=`<select id="${id}">${data.cards.map(c=>`<option value="${c.id}" ${c.id===val?'selected':''}>${esc(c.name)}</option>`).join('')}</select>`;
+    else if(type==='kind')inp=`<select id="${id}"><option value="conta" ${val!=='investimento'?'selected':''}>Saldo em conta</option><option value="investimento" ${val==='investimento'?'selected':''}>Investimento</option></select>`;
+    else if(type==='bool')inp=`<input type="checkbox" id="${id}" ${val?'checked':''} style="width:auto">`;
+    else inp=`<input id="${id}" type="${type}" ${type==='number'?'step="0.01"':''} value="${esc(val)}">`;
+    return `<div class="${type==='text'?'full':''}"><label for="${id}">${label}</label>${inp}</div>`;}).join('');
+  $('entModal').classList.remove('hidden');};
+
+// ---- v15: saldo em conta e investimentos ----
+let assetsData=[];
+async function loadAssets(){const r=await sb.from('assets').select('*').order('created_at',{ascending:false});
+  if(r.error){$('assetTable').innerHTML='<p class="muted">A tabela de saldos ainda não foi criada no Supabase (veja o SQL que te passei).</p>';return;}
+  assetsData=r.data;renderAssets();}
+function renderAssets(){
+  const sum=k=>assetsData.filter(a=>a.kind===k).reduce((t,a)=>t+Number(a.amount),0),saldo=sum('conta'),inv=sum('investimento');
+  const mes=$('selectedMonth')?.value||monthISO(),pagar=futureBillOccurrences(mes),sobra=saldo-pagar;
+  $('vSaldo').textContent=money(saldo);$('vInvest').textContent=money(inv);$('vTotal').textContent=money(saldo+inv);
+  $('vPagar').textContent=money(pagar);$('vSobra').textContent=money(sobra);$('vSobra').style.color=sobra<0?'#b93838':'#185d3b';
+  $('assetTable').innerHTML=assetsData.length?`<table><thead><tr><th>Nome</th><th>Tipo</th><th class="money">Valor</th><th></th></tr></thead><tbody>${assetsData.map(a=>`<tr><td><b>${esc(a.name)}</b>${a.institution?`<div class="muted">${esc(a.institution)}</div>`:''}${a.notes?`<div class="muted">${esc(a.notes)}</div>`:''}</td><td><span class="pill">${a.kind==='investimento'?'📈 Investimento':'💰 Saldo em conta'}</span></td><td class="money">${money(a.amount)}</td><td style="white-space:nowrap"><button type="button" class="btn secondary small" onclick="editEntity('asset','${a.id}')">✏ Editar</button> <button type="button" class="btn danger small" data-delasset="${a.id}">🗑</button></td></tr>`).join('')}</tbody></table>`:'<p class="muted">Nada cadastrado ainda. Adicione seu saldo em conta e seus investimentos ao lado.</p>';}
+$('assetForm').addEventListener('submit',async e=>{e.preventDefault();
+  const {error}=await sb.from('assets').insert({name:$('assetName').value.trim(),kind:$('assetKind').value,amount:Number($('assetAmount').value),institution:$('assetInst').value.trim()||null,notes:$('assetNotes').value.trim()||null});
+  if(error){alert('Erro: '+error.message);return;}
+  $('assetForm').reset();loadAssets();});
+$('assetTable').addEventListener('click',async e=>{const b=e.target.closest('[data-delasset]');if(!b||!confirm('Excluir este item?'))return;await sb.from('assets').delete().eq('id',b.dataset.delasset);loadAssets();});
+document.querySelector('.tab[data-tab="invest"]').addEventListener('click',loadAssets);
+if($('selectedMonth'))$('selectedMonth').addEventListener('change',()=>{if(assetsData.length)renderAssets();});
+
+
+// ---- esqueci minha senha (link por e-mail) ----
+$('btnForgot').addEventListener('click', async e => {
+  e.preventDefault();
+  const email = $('email').value.trim();
+  if (!email) { $('loginError').textContent='Digite seu e-mail acima e toque de novo em "Esqueci minha senha".'; $('loginError').style.display='block'; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  if (error) { $('loginError').textContent = error.message; $('loginError').style.display='block'; return; }
+  $('loginError').style.display='none';
+  $('loginSuccess').textContent='Enviei um link pro seu e-mail. Abra o link pra criar a nova senha.';
+  $('loginSuccess').style.display='block';
+});
 
 // Inicia
 checkSession();
