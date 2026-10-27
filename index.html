@@ -133,7 +133,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
   <button class="tab" data-tab="contas">Contas futuras</button>
   <button class="tab" data-tab="analise">Análises</button>
   <button class="tab" data-tab="dados">Backup</button>
-<button class="tab" data-tab="config" type="button">Configurações</button><button class="tab" data-tab="docs" type="button">Documentos</button></nav>
+<button class="tab" data-tab="config" type="button">Configurações</button><button class="tab" data-tab="docs" type="button">Documentos</button><button class="tab" data-tab="site" type="button">Site</button></nav>
 <div class="monthbar">
   <div><label for="selectedMonth">Mês em análise</label><input type="month" id="selectedMonth"></div>
   <div><label for="filterPerson">Ver gastos de</label>
@@ -285,6 +285,34 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
 <section class="panel" id="docs"><div class="card"><h2>Documentos importados</h2>
 <input id="docsSearch" placeholder="🔎 Buscar por nome, valor ou qualquer palavra do documento">
 <div id="docsList" style="margin-top:12px"></div></div></section>
+
+<section class="panel" id="site">
+<div class="grid">
+  <div class="card span-12">
+    <div class="sectionhead">
+      <h2>Site da Você no Controle</h2>
+      <a class="btn" href="https://vocênocontrole.framer.website" target="_blank" rel="noopener">Abrir site em nova aba</a>
+    </div>
+    <p class="muted" style="margin-bottom:14px">
+      Presença digital feita em <strong>Framer</strong> (plataforma no-code), integrada a este aplicativo personalizado com HTML, CSS e JavaScript.
+    </p>
+    <div style="position:relative;width:100%;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;min-height:70vh">
+      <iframe
+        src="https://vocênocontrole.framer.website"
+        title="Site Você no Controle - Framer"
+        style="width:100%;height:75vh;border:0;display:block"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        allow="fullscreen">
+      </iframe>
+    </div>
+    <p class="muted" style="margin-top:12px;font-size:12px">
+      Se o site não aparecer aqui, use o botão <strong>Abrir site em nova aba</strong> (alguns navegadores bloqueiam páginas embutidas).
+    </p>
+  </div>
+</div>
+</section>
+
 </main>
 <footer>Você no Controle • Dados sincronizados via Supabase<br><a href="#" data-doc="privacidade" style="color:inherit">Política de Privacidade</a> • <a href="#" data-doc="termos" style="color:inherit">Termos de Uso</a> • <a href="#" id="btnWipe" style="color:#b93838">Apagar todos os meus dados</a></footer>
 </div>
@@ -1167,14 +1195,15 @@ $('setWipe').addEventListener('click',()=>$('btnWipe').click());
   const form=$('loginForm'),sub=form.querySelector('button[type=submit]'),pw=$('password'),ac=$('aceite').closest('label'),fg=$('btnForgot').parentElement;
   const p2=document.createElement('div');p2.innerHTML='<label for="password2">Repita a senha</label><input type="password" id="password2" autocomplete="new-password" placeholder="Repita a senha">';pw.parentElement.after(p2);
   const info=document.createElement('p');info.className='muted';info.style.cssText='font-size:13px;margin:0 0 12px';
-  /* sem mensagem de e-mail de confirmação */
+  info.innerHTML='Depois de criar a conta, clique em <b>Entrar</b> com o mesmo e-mail e senha. <a href="#" id="resend" style="color:#0f766e;font-weight:700">Reenviar e-mail</a>';p2.after(info);
   const seg=document.createElement('div');seg.className='seg';seg.innerHTML='<button type="button" data-m="in" class="on">Entrar</button><button type="button" data-m="up">Criar conta</button>';form.prepend(seg);
   function mode(m){const up=m==='up';seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
     [p2,info,ac,$('btnSignup')].forEach(e=>e.style.display=up?'':'none');sub.style.display=up?'none':'';fg.style.display=up?'none':'';
     $('loginError').style.display='none';$('loginSuccess').style.display='none';}
   seg.addEventListener('click',e=>{const b=e.target.closest('button');if(b)mode(b.dataset.m);});
   $('btnSignup').addEventListener('click',e=>{if($('password2').value!==pw.value){e.stopImmediatePropagation();$('loginError').textContent='As senhas não são iguais.';$('loginError').style.display='block';}},true);
-
+  $('resend').addEventListener('click',async e=>{e.preventDefault();const em=$('email').value.trim();if(!em){$('loginError').textContent='Digite seu e-mail acima.';$('loginError').style.display='block';return;}
+    const{error}=await sb.auth.resend({type:'signup',email:em});$('loginError').style.display='none';$('loginSuccess').textContent=error?error.message:'Se precisar, use Entrar com e-mail e senha. A confirmação por e-mail está desligada neste projeto.';$('loginSuccess').style.display='block';});
   mode('in');
 })();
 
