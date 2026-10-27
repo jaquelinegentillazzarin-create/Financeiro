@@ -1195,15 +1195,14 @@ $('setWipe').addEventListener('click',()=>$('btnWipe').click());
   const form=$('loginForm'),sub=form.querySelector('button[type=submit]'),pw=$('password'),ac=$('aceite').closest('label'),fg=$('btnForgot').parentElement;
   const p2=document.createElement('div');p2.innerHTML='<label for="password2">Repita a senha</label><input type="password" id="password2" autocomplete="new-password" placeholder="Repita a senha">';pw.parentElement.after(p2);
   const info=document.createElement('p');info.className='muted';info.style.cssText='font-size:13px;margin:0 0 12px';
-  info.innerHTML='Depois de criar a conta, clique em <b>Entrar</b> com o mesmo e-mail e senha. <a href="#" id="resend" style="color:#0f766e;font-weight:700">Reenviar e-mail</a>';p2.after(info);
+  /* sem reenviar e-mail */
   const seg=document.createElement('div');seg.className='seg';seg.innerHTML='<button type="button" data-m="in" class="on">Entrar</button><button type="button" data-m="up">Criar conta</button>';form.prepend(seg);
   function mode(m){const up=m==='up';seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
     [p2,info,ac,$('btnSignup')].forEach(e=>e.style.display=up?'':'none');sub.style.display=up?'none':'';fg.style.display=up?'none':'';
     $('loginError').style.display='none';$('loginSuccess').style.display='none';}
   seg.addEventListener('click',e=>{const b=e.target.closest('button');if(b)mode(b.dataset.m);});
   $('btnSignup').addEventListener('click',e=>{if($('password2').value!==pw.value){e.stopImmediatePropagation();$('loginError').textContent='As senhas não são iguais.';$('loginError').style.display='block';}},true);
-  $('resend').addEventListener('click',async e=>{e.preventDefault();const em=$('email').value.trim();if(!em){$('loginError').textContent='Digite seu e-mail acima.';$('loginError').style.display='block';return;}
-    const{error}=await sb.auth.resend({type:'signup',email:em});$('loginError').style.display='none';$('loginSuccess').textContent=error?error.message:'Se precisar, use Entrar com e-mail e senha. A confirmação por e-mail está desligada neste projeto.';$('loginSuccess').style.display='block';});
+$('loginError').style.display='none';$('loginSuccess').textContent=error?error.message:'Se precisar, use Entrar com e-mail e senha. A confirmação por e-mail está desligada neste projeto.';$('loginSuccess').style.display='block';});
   mode('in');
 })();
 
