@@ -74,7 +74,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
     </form>
     <p style="text-align:center;margin-top:14px"><a href="#" id="btnForgot" style="color:#245c4f;font-size:13px;font-weight:650">Esqueci minha senha</a></p>
     <p class="muted" style="text-align:center;margin-top:18px;font-size:12px">
-      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.<br><span style="opacity:.6">versão 19 ✓</span>
+      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.<br><span style="opacity:.6">versão 20 ✓</span>
     </p>
   </div>
 </div>
@@ -1036,6 +1036,7 @@ window.toggleBill = async id => {
   }
 
   let updates = {};
+  let nextDueLabel = '';
   if (b.repeat === 'yes') {
     if (!b.paid) {
       const day = getBillDay(b);
@@ -1044,7 +1045,7 @@ window.toggleBill = async id => {
       const maxDay = new Date(y, m, 0).getDate();
       const newDay = Math.min(day, maxDay);
       updates = { due_date: `${nextM}-${String(newDay).padStart(2,'0')}`, paid: false };
-      alert(`Conta "${b.name}" marcada como paga.\nPróximo vencimento: ${updates.due_date.split('-').reverse().join('/')}`);
+      nextDueLabel = updates.due_date.split('-').reverse().join('/');
     } else {
       const day = getBillDay(b);
       const prevM = shiftMonth(b.dueDate.slice(0,7), -1);
@@ -1070,7 +1071,19 @@ window.toggleBill = async id => {
 
   const { error } = await sb.from('bills').update(updates).eq('id', id);
   if (error) { alert('Erro: ' + error.message); return; }
+  const wasPaying = !b.paid; // antes do clique estava em aberto
   await loadAllData();
+  if (wasPaying) {
+    const msgs = [
+      'Parabéns! Conta paga e registrada. Continue assim!',
+      'Muito bem! Mais uma conta quitada. Seu controle está em dia!',
+      'Parabéns pelo pagamento! Cada conta paga é um passo no controle financeiro.',
+      'Ótimo! Conta paga com sucesso. Você está no caminho certo!'
+    ];
+    let msg = msgs[Math.floor(Math.random()*msgs.length)];
+    if (nextDueLabel) msg += '\n\nPróximo vencimento: ' + nextDueLabel;
+    alert(msg);
+  }
 };
 
 window.deletePurchase = async id => {
@@ -1275,7 +1288,22 @@ $('btnWipe').addEventListener('click', async e => {
 // ---- v11: categorias únicas, menu do usuário, configurações, entrar/criar conta ----
 const CATS=['Casa','Aluguel/Financiamento','Água','Luz','Internet/Telefone','Mercado','Alimentação','Transporte','Combustível','Saúde','Educação','Lazer','Viagens','Assinaturas','Cartões','Compras','Vestuário','Pets','Família','Seguros','Impostos/Taxas','Empréstimos/Dívidas','Contas atrasadas','Investimentos','Presentes/Doações','Mensais','Outros'];
 ['expenseCategory','billCategory','purchaseCategory'].forEach(i=>{$(i).innerHTML=CATS.map(c=>`<option>${c}</option>`).join('')});
-const _lm=loadMembers; loadMembers=function(){_lm();const m=currentUser?.user_metadata?.members;if(Array.isArray(m)&&m.length){members=m;if(!members.includes('Família'))members.unshift('Família');}};
+const _lm=loadMembers; loadMembers=function(){
+  _lm();
+  // Junta localStorage + metadados do Supabase (não apaga nomes que só estavam em um dos lados)
+  const meta=currentUser?.user_metadata?.members;
+  const fromMeta=Array.isArray(meta)?meta:[];
+  const merged=['Família'];
+  for (const src of [members, fromMeta]) {
+    for (const n of src) {
+      const name=String(n||'').trim();
+      if (!name) continue;
+      if (!merged.some(x=>x.toLowerCase()===name.toLowerCase())) merged.push(name);
+    }
+  }
+  members=merged;
+  try{ localStorage.setItem(membersKey(), JSON.stringify(members)); }catch(e){}
+};
 const _sm=saveMembers; saveMembers=function(){_sm();try{sb.auth.updateUser({data:{members}}).catch(()=>{});}catch(e){}};
 function renderMembers(){$('memberList').innerHTML=members.map(m=>`<div class="mrow"><span>👤 ${esc(m)}</span>${m==='Família'?'<span class="muted">padrão</span>':`<button type="button" class="btn danger small" data-rm="${esc(m)}">Remover</button>`}</div>`).join('');}
 $('memberList').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(!b)return;members=members.filter(m=>m!==b.dataset.rm);saveMembers();fillPersonSelects();renderMembers();});
