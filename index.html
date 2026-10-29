@@ -291,25 +291,15 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
 <div class="grid">
   <div class="card span-12">
     <div class="sectionhead">
-      <h2>Site da Você no Controle</h2>
-      <a class="btn" href="https://vocênocontrole.framer.website" target="_blank" rel="noopener">Abrir site em nova aba</a>
+      <h2>🌐 Site Você no Controle</h2>
+      <a class="btn" href="https://vocênocontrole.framer.website" target="_blank" rel="noopener">Abrir site</a>
     </div>
-    <p class="muted" style="margin-bottom:14px">
-      Presença digital feita em <strong>Framer</strong> (plataforma no-code), integrada a este aplicativo personalizado com HTML, CSS e JavaScript.
-    </p>
-    <div style="position:relative;width:100%;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;min-height:70vh">
-      <iframe
-        src="https://vocênocontrole.framer.website"
-        title="Site Você no Controle - Framer"
-        style="width:100%;height:75vh;border:0;display:block"
-        loading="lazy"
-        referrerpolicy="no-referrer-when-downgrade"
-        allow="fullscreen">
-      </iframe>
+    <p class="muted">Esta área reúne as informações sobre a presença digital do projeto, sem carregar o site dentro do aplicativo.</p>
+    <div class="grid" style="margin-top:14px">
+      <div class="card span-4"><h3>🏠 Apresentação</h3><p class="muted">Página institucional para apresentar o projeto Você no Controle.</p></div>
+      <div class="card span-4"><h3>📱 Acesso online</h3><p class="muted">O site pode ser aberto em uma nova aba pelo botão acima, sem sair definitivamente do aplicativo.</p></div>
+      <div class="card span-4"><h3>💡 Objetivo</h3><p class="muted">Divulgar a proposta da ferramenta de organização financeira e facilitar o acesso às informações do projeto.</p></div>
     </div>
-    <p class="muted" style="margin-top:12px;font-size:12px">
-      Se o site não aparecer aqui, use o botão <strong>Abrir site em nova aba</strong> (alguns navegadores bloqueiam páginas embutidas).
-    </p>
   </div>
 </div>
 </section>
@@ -402,39 +392,41 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
 
 <section class="panel" id="objetivos">
 <div class="grid">
-  <div class="card span-5">
-    <h2>📅 Calendário dos sonhos</h2>
-    <p class="muted" style="margin:0 0 12px;font-size:13px">Escolha o <strong>mês e o ano</strong>, toque no <strong>dia</strong> e escreva sua meta — pode ser 2026, 2027, 2028… o que você quiser conquistar.</p>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-      <button type="button" class="btn secondary small" id="calPrev">‹</button>
-      <strong id="calTitle" style="min-width:140px;text-align:center;color:#173e36"></strong>
-      <button type="button" class="btn secondary small" id="calNext">›</button>
-      <label class="muted" style="margin-left:8px;font-size:12px">Ano
-        <input type="number" id="calYearJump" min="2020" max="2100" style="width:80px;margin-left:4px">
+  <div class="card span-12" style="padding:clamp(16px,3vw,30px)">
+    <div class="sectionhead" style="align-items:flex-start">
+      <div><h2 style="margin-bottom:6px">✨ Meu calendário de sonhos</h2>
+      <p class="muted" style="margin:0">Escolha qualquer data, planeje o que deseja conquistar e registre os detalhes do seu sonho.</p></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:20px 0 14px">
+      <button type="button" class="btn secondary" id="calPrev" aria-label="Mês anterior">‹ Mês anterior</button>
+      <strong id="calTitle" style="font-size:clamp(18px,3vw,25px);min-width:180px;text-align:center;color:#173e36;text-transform:capitalize"></strong>
+      <button type="button" class="btn secondary" id="calNext" aria-label="Próximo mês">Próximo mês ›</button>
+      <label class="muted" style="display:flex;gap:6px;align-items:center">Ir para o ano
+        <input type="number" id="calYearJump" min="1900" max="2200" style="width:105px;margin:0" aria-label="Escolher ano">
       </label>
-      <button type="button" class="btn secondary small" id="calGoYear">Ir</button>
+      <button type="button" class="btn secondary" id="calGoYear">Ir</button>
     </div>
-    <div id="calWeek" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:11px;color:#6b7280;margin-bottom:6px;font-weight:700">
-      <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+    <div id="calWeek" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:clamp(4px,1vw,10px);text-align:center;font-size:clamp(12px,1.8vw,15px);color:#6b7280;margin-bottom:8px;font-weight:800">
+      <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
     </div>
-    <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px"></div>
-    <p class="muted" style="margin:12px 0 0;font-size:12px">Dias com meta ficam marcados. Toque de novo no dia para editar.</p>
+    <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:clamp(4px,1vw,10px)"></div>
+    <p class="muted" style="margin:14px 0 0;font-size:13px">💚 Dias com sonhos cadastrados ficam destacados. Selecione um dia para adicionar ou editar sua meta.</p>
   </div>
-  <div class="card span-7">
-    <h2 id="dreamFormTitle">Meta do dia selecionado</h2>
-    <p id="dreamFormHint" class="muted" style="margin:0 0 12px;font-size:13px">Selecione um dia no calendário para escrever seu sonho ou objetivo.</p>
+  <div class="card span-12">
+    <h2 id="dreamFormTitle">Seu sonho para a data selecionada</h2>
+    <p id="dreamFormHint" class="muted" style="margin:0 0 16px">Selecione um dia no calendário ou escolha uma data abaixo.</p>
     <div class="formgrid">
-      <div class="full"><label for="dreamDate">Data da meta</label><input id="dreamDate" type="date"></div>
-      <div class="full"><label for="dreamTitle">Qual é o sonho / objetivo?</label><input id="dreamTitle" placeholder="Ex.: Comprar um carro, viagem em família, casa própria…"></div>
-      <div class="full"><label for="dreamDetail">Detalhes (opcional)</label><textarea id="dreamDetail" rows="3" placeholder="Como imagina, valor aproximado, por que é importante…" style="width:100%;border-radius:12px;border:1px solid var(--line);padding:10px;font:inherit"></textarea></div>
+      <div><label for="dreamDate">Data do sonho</label><input id="dreamDate" type="date"></div>
+      <div><label for="dreamTitle">Qual é o seu sonho?</label><input id="dreamTitle" placeholder="Ex.: comprar uma casa, viajar, quitar uma dívida…"></div>
+      <div class="full"><label for="dreamDetail">Plano, detalhes ou próximos passos</label><textarea id="dreamDetail" rows="4" placeholder="Escreva como deseja realizar esse sonho, quanto pretende guardar ou por que ele é importante." style="width:100%;border-radius:12px;border:1px solid var(--line);padding:12px;font:inherit"></textarea></div>
     </div>
-    <div class="actions" style="margin-top:12px;flex-wrap:wrap">
-      <button type="button" class="btn" id="dreamSave" style="flex:1">Salvar meta neste dia</button>
+    <div class="actions" style="margin-top:14px;flex-wrap:wrap">
+      <button type="button" class="btn" id="dreamSave" style="flex:1">💾 Salvar sonho</button>
       <button type="button" class="btn secondary" id="dreamClear" style="flex:1">Limpar campos</button>
     </div>
-    <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
-    <h2>Todas as metas</h2>
-    <div id="dreamList"><div class="empty">Nenhuma meta ainda. Escolha um dia e escreva seu primeiro sonho.</div></div>
+    <hr style="border:0;border-top:1px solid var(--line);margin:22px 0">
+    <h2>📌 Meus sonhos cadastrados</h2>
+    <div id="dreamList"><div class="empty">Nenhum sonho cadastrado ainda. Escolha uma data e registre o primeiro.</div></div>
   </div>
 </div>
 </section>
@@ -1690,7 +1682,7 @@ function renderCalendar(){
     const has = marked.has(iso);
     const sel = calSelected === iso;
     const isToday = iso === today;
-    let style = 'aspect-ratio:1;border-radius:10px;border:1px solid #e5e9ef;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#1f2937;';
+    let style = 'min-height:clamp(48px,7vw,88px);border-radius:12px;border:1px solid #e5e9ef;background:#fff;cursor:pointer;font-size:clamp(14px,2vw,20px);font-weight:700;color:#1f2937;transition:background .15s,border-color .15s;';
     if(has) style += 'background:#ecfdf5;border-color:#6ee7b7;';
     if(sel) style += 'outline:2px solid #245c4f;background:#d1fae5;';
     if(isToday && !sel) style += 'border-color:#245c4f;';
@@ -1739,7 +1731,7 @@ $('calPrev')?.addEventListener('click',()=>{ calCursor.setMonth(calCursor.getMon
 $('calNext')?.addEventListener('click',()=>{ calCursor.setMonth(calCursor.getMonth()+1); renderCalendar(); });
 $('calGoYear')?.addEventListener('click',()=>{
   const y=Number($('calYearJump').value);
-  if(y>=2020 && y<=2100){ calCursor.setFullYear(y); renderCalendar(); }
+  if(y>=1900 && y<=2200){ calCursor.setFullYear(y); renderCalendar(); }
 });
 $('calGrid')?.addEventListener('click',e=>{
   const b=e.target.closest('[data-cal-day]'); if(!b) return;
