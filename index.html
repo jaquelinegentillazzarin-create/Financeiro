@@ -74,7 +74,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
     </form>
     <p style="text-align:center;margin-top:14px"><a href="#" id="btnForgot" style="color:#245c4f;font-size:13px;font-weight:650">Esqueci minha senha</a></p>
     <p class="muted" style="text-align:center;margin-top:18px;font-size:12px">
-      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.<br><span style="opacity:.6">versão 23 ✓</span>
+      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.<br><span style="opacity:.6">versão 24 ✓</span>
     </p>
   </div>
 </div>
@@ -1705,13 +1705,14 @@ function renderCalendar(){
 }
 function fillDreamForm(iso){
   calSelected = iso || '';
-  const d = iso ? dreamByDate(iso) : null;
+  const count = iso ? loadDreams().filter(d => d.date === iso).length : 0;
   if($('dreamDate')) $('dreamDate').value = iso || '';
-  if($('dreamTitle')) $('dreamTitle').value = d ? (d.title||'') : '';
-  if($('dreamDetail')) $('dreamDetail').value = d ? (d.detail||'') : '';
-  if($('dreamFormTitle')) $('dreamFormTitle').textContent = iso ? ('Meta em '+iso.split('-').reverse().join('/')) : 'Meta do dia selecionado';
+  // Sempre campos limpos para nova meta (várias por dia permitidas)
+  if($('dreamTitle')) $('dreamTitle').value = '';
+  if($('dreamDetail')) $('dreamDetail').value = '';
+  if($('dreamFormTitle')) $('dreamFormTitle').textContent = iso ? ('Nova meta em '+iso.split('-').reverse().join('/')) : 'Meta do dia selecionado';
   if($('dreamFormHint')) $('dreamFormHint').textContent = iso
-    ? (d ? 'Edite abaixo e salve para atualizar esta meta.' : 'Escreva o sonho ou objetivo para este dia e salve.')
+    ? (count ? ('Este dia já tem '+count+' meta(s). Escreva outra abaixo ou veja a lista.') : 'Escreva o sonho ou objetivo para este dia e salve. Pode criar várias no mesmo dia.')
     : 'Selecione um dia no calendário para escrever seu sonho ou objetivo.';
   renderCalendar();
 }
@@ -1758,15 +1759,20 @@ $('dreamSave')?.addEventListener('click',()=>{
   if(!date){ alert('Escolha a data da meta no calendário ou no campo de data.'); return; }
   if(!title){ alert('Escreva qual é o sonho ou objetivo.'); return; }
   let list=loadDreams();
-  const existing=list.find(d=>d.date===date);
-  if(existing){ existing.title=title; existing.detail=detail; }
-  else list.push({ id:'d_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), date, title, detail, achieved:false, createdAt:new Date().toISOString() });
+  // Sempre cria uma NOVA meta (pode haver várias no mesmo dia)
+  list.push({ id:'d_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), date, title, detail, achieved:false, createdAt:new Date().toISOString() });
   saveDreams(list);
   calSelected=date;
+  // Limpa os campos após salvar (mantém só a data selecionada no calendário visual)
+  if($('dreamTitle')) $('dreamTitle').value='';
+  if($('dreamDetail')) $('dreamDetail').value='';
+  if($('dreamDate')) $('dreamDate').value='';
+  if($('dreamFormTitle')) $('dreamFormTitle').textContent='Meta do dia selecionado';
+  if($('dreamFormHint')) $('dreamFormHint').textContent='Meta salva! Pode criar outra no mesmo dia ou escolher outra data no calendário.';
   refreshDreamsUI();
-  alert('Meta salva para '+date.split('-').reverse().join('/')+'!');
+  alert('Meta salva para '+date.split('-').reverse().join('/')+'!\nPode cadastrar outra meta neste mesmo dia se quiser.');
 });
-$('dreamClear')?.addEventListener('click',()=>{ $('dreamTitle').value=''; $('dreamDetail').value=''; });
+$('dreamClear')?.addEventListener('click',()=>{ if($('dreamTitle'))$('dreamTitle').value=''; if($('dreamDetail'))$('dreamDetail').value=''; if($('dreamDate'))$('dreamDate').value=''; calSelected=''; renderCalendar(); if($('dreamFormTitle'))$('dreamFormTitle').textContent='Meta do dia selecionado'; if($('dreamFormHint'))$('dreamFormHint').textContent='Selecione um dia no calendário para escrever seu sonho ou objetivo.'; });
 $('dreamList')?.addEventListener('click',e=>{
   const open=e.target.closest('[data-dream-open]');
   const done=e.target.closest('[data-dream-done]');
