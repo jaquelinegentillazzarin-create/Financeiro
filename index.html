@@ -74,7 +74,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
     </form>
     <p style="text-align:center;margin-top:14px"><a href="#" id="btnForgot" style="color:#245c4f;font-size:13px;font-weight:650">Esqueci minha senha</a></p>
     <p class="muted" style="text-align:center;margin-top:18px;font-size:12px">
-      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.<br><span style="opacity:.6">versão 20 ✓</span>
+      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.<br><span style="opacity:.6">versão 22 ✓</span>
     </p>
   </div>
 </div>
@@ -133,7 +133,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
   <button class="tab" data-tab="contas">Contas futuras</button>
   <button class="tab" data-tab="analise">Análises</button>
   <button class="tab" data-tab="dados">Backup</button>
-<button class="tab" data-tab="config" type="button">Configurações</button><button class="tab" data-tab="docs" type="button">Documentos</button><button class="tab" data-tab="site" type="button">Site</button><button class="tab" data-tab="curso" type="button">Curso</button><button class="tab" data-tab="sac" type="button">SAC</button><button class="tab" data-tab="invest" type="button">Investimentos</button></nav>
+<button class="tab" data-tab="config" type="button">Configurações</button><button class="tab" data-tab="docs" type="button">Documentos</button><button class="tab" data-tab="site" type="button">Site</button><button class="tab" data-tab="curso" type="button">Curso</button><button class="tab" data-tab="sac" type="button">SAC</button><button class="tab" data-tab="objetivos" type="button">Sonhos e objetivos</button><button class="tab" data-tab="invest" type="button">Investimentos</button></nav>
 <div class="monthbar">
   <div><label for="selectedMonth">Mês em análise</label><input type="month" id="selectedMonth"></div>
   <div><label for="filterPerson">Ver gastos de</label>
@@ -398,6 +398,46 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
 </div><div class="actions"><button class="btn" type="submit">Salvar</button></div></form></div>
 <div class="card span-8"><h2>Meus saldos e investimentos</h2><div class="tablewrap" id="assetTable"></div></div>
 </div></section>
+
+
+<section class="panel" id="objetivos">
+<div class="grid">
+  <div class="card span-5">
+    <h2>📅 Calendário dos sonhos</h2>
+    <p class="muted" style="margin:0 0 12px;font-size:13px">Escolha o <strong>mês e o ano</strong>, toque no <strong>dia</strong> e escreva sua meta — pode ser 2026, 2027, 2028… o que você quiser conquistar.</p>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+      <button type="button" class="btn secondary small" id="calPrev">‹</button>
+      <strong id="calTitle" style="min-width:140px;text-align:center;color:#173e36"></strong>
+      <button type="button" class="btn secondary small" id="calNext">›</button>
+      <label class="muted" style="margin-left:8px;font-size:12px">Ano
+        <input type="number" id="calYearJump" min="2020" max="2100" style="width:80px;margin-left:4px">
+      </label>
+      <button type="button" class="btn secondary small" id="calGoYear">Ir</button>
+    </div>
+    <div id="calWeek" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:11px;color:#6b7280;margin-bottom:6px;font-weight:700">
+      <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+    </div>
+    <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px"></div>
+    <p class="muted" style="margin:12px 0 0;font-size:12px">Dias com meta ficam marcados. Toque de novo no dia para editar.</p>
+  </div>
+  <div class="card span-7">
+    <h2 id="dreamFormTitle">Meta do dia selecionado</h2>
+    <p id="dreamFormHint" class="muted" style="margin:0 0 12px;font-size:13px">Selecione um dia no calendário para escrever seu sonho ou objetivo.</p>
+    <div class="formgrid">
+      <div class="full"><label for="dreamDate">Data da meta</label><input id="dreamDate" type="date"></div>
+      <div class="full"><label for="dreamTitle">Qual é o sonho / objetivo?</label><input id="dreamTitle" placeholder="Ex.: Comprar um carro, viagem em família, casa própria…"></div>
+      <div class="full"><label for="dreamDetail">Detalhes (opcional)</label><textarea id="dreamDetail" rows="3" placeholder="Como imagina, valor aproximado, por que é importante…" style="width:100%;border-radius:12px;border:1px solid var(--line);padding:10px;font:inherit"></textarea></div>
+    </div>
+    <div class="actions" style="margin-top:12px;flex-wrap:wrap">
+      <button type="button" class="btn" id="dreamSave" style="flex:1">Salvar meta neste dia</button>
+      <button type="button" class="btn secondary" id="dreamClear" style="flex:1">Limpar campos</button>
+    </div>
+    <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+    <h2>Todas as metas</h2>
+    <div id="dreamList"><div class="empty">Nenhuma meta ainda. Escolha um dia e escreva seu primeiro sonho.</div></div>
+  </div>
+</div>
+</section>
 </main>
 <footer>Você no Controle • Dados sincronizados via Supabase<br><a href="#" data-doc="privacidade" style="color:inherit">Política de Privacidade</a> • <a href="#" data-doc="termos" style="color:inherit">Termos de Uso</a> • <a href="#" id="btnWipe" style="color:#b93838">Apagar todos os meus dados</a></footer>
 </div>
@@ -1608,6 +1648,156 @@ $('btnForgot').addEventListener('click', async e => {
 });
 
 // Inicia
+
+
+// ---- Sonhos e objetivos (calendário de metas) ----
+let calCursor = new Date();
+calCursor.setDate(1);
+let calSelected = '';
+
+function dreamsKey(){ return 'fnc_dreams_' + (currentUser?.id || 'guest'); }
+function loadDreams(){
+  try{ const r=localStorage.getItem(dreamsKey()); if(r){ const a=JSON.parse(r); if(Array.isArray(a)) return a; } }catch(e){}
+  const meta=currentUser?.user_metadata?.dreams;
+  if(Array.isArray(meta)) return meta;
+  return [];
+}
+function saveDreams(list){
+  try{ localStorage.setItem(dreamsKey(), JSON.stringify(list)); }catch(e){}
+  try{ if(currentUser) sb.auth.updateUser({ data:{ dreams:list } }).catch(()=>{}); }catch(e){}
+}
+function dreamByDate(dateStr){
+  return loadDreams().find(d => d.date === dateStr) || null;
+}
+function isoFromYMD(y,m,d){
+  return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+}
+function renderCalendar(){
+  const grid=$('calGrid'), title=$('calTitle'), yearJump=$('calYearJump');
+  if(!grid||!title) return;
+  const y=calCursor.getFullYear(), m=calCursor.getMonth();
+  title.textContent = calCursor.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  if(yearJump) yearJump.value = y;
+  const firstDow = new Date(y,m,1).getDay();
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const dreams = loadDreams();
+  const marked = new Set(dreams.map(d=>d.date));
+  const today = todayISO();
+  let html = '';
+  for(let i=0;i<firstDow;i++) html += '<div></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const iso = isoFromYMD(y,m+1,d);
+    const has = marked.has(iso);
+    const sel = calSelected === iso;
+    const isToday = iso === today;
+    let style = 'aspect-ratio:1;border-radius:10px;border:1px solid #e5e9ef;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#1f2937;';
+    if(has) style += 'background:#ecfdf5;border-color:#6ee7b7;';
+    if(sel) style += 'outline:2px solid #245c4f;background:#d1fae5;';
+    if(isToday && !sel) style += 'border-color:#245c4f;';
+    html += `<button type="button" data-cal-day="${iso}" style="${style}">${d}${has?'•':''}</button>`;
+  }
+  grid.innerHTML = html;
+}
+function fillDreamForm(iso){
+  calSelected = iso || '';
+  const d = iso ? dreamByDate(iso) : null;
+  if($('dreamDate')) $('dreamDate').value = iso || '';
+  if($('dreamTitle')) $('dreamTitle').value = d ? (d.title||'') : '';
+  if($('dreamDetail')) $('dreamDetail').value = d ? (d.detail||'') : '';
+  if($('dreamFormTitle')) $('dreamFormTitle').textContent = iso ? ('Meta em '+iso.split('-').reverse().join('/')) : 'Meta do dia selecionado';
+  if($('dreamFormHint')) $('dreamFormHint').textContent = iso
+    ? (d ? 'Edite abaixo e salve para atualizar esta meta.' : 'Escreva o sonho ou objetivo para este dia e salve.')
+    : 'Selecione um dia no calendário para escrever seu sonho ou objetivo.';
+  renderCalendar();
+}
+function renderDreamList(){
+  const el=$('dreamList'); if(!el) return;
+  const list=loadDreams().slice().sort((a,b)=> (a.date||'').localeCompare(b.date||''));
+  if(!list.length){ el.innerHTML='<div class="empty">Nenhuma meta ainda. Escolha um dia e escreva seu primeiro sonho.</div>'; return; }
+  el.innerHTML = list.map(d => {
+    const done = !!d.achieved;
+    return `<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:${done?'#ecfdf5':'#fff'}">
+      <div class="sectionhead">
+        <div>
+          <strong>${done?'🏆 ':''}${esc(d.title||'Meta')}</strong>
+          <div class="muted" style="font-size:12px">📅 ${esc((d.date||'').split('-').reverse().join('/'))}${done?' · alcançado':''}</div>
+          ${d.detail?`<div class="muted" style="font-size:12px;margin-top:4px">${esc(d.detail)}</div>`:''}
+        </div>
+      </div>
+      <div class="actions" style="margin-top:8px;flex-wrap:wrap">
+        <button type="button" class="btn secondary small" data-dream-open="${esc(d.date)}">Abrir no calendário</button>
+        ${done?'':`<button type="button" class="btn small" data-dream-done="${esc(d.id)}">🏆 Objetivo alcançado</button>`}
+        ${done?`<button type="button" class="btn secondary small" data-dream-reopen="${esc(d.id)}">Reabrir</button>`:''}
+        <button type="button" class="btn danger small" data-dream-del="${esc(d.id)}">Excluir</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function refreshDreamsUI(){ renderCalendar(); renderDreamList(); }
+
+$('calPrev')?.addEventListener('click',()=>{ calCursor.setMonth(calCursor.getMonth()-1); renderCalendar(); });
+$('calNext')?.addEventListener('click',()=>{ calCursor.setMonth(calCursor.getMonth()+1); renderCalendar(); });
+$('calGoYear')?.addEventListener('click',()=>{
+  const y=Number($('calYearJump').value);
+  if(y>=2020 && y<=2100){ calCursor.setFullYear(y); renderCalendar(); }
+});
+$('calGrid')?.addEventListener('click',e=>{
+  const b=e.target.closest('[data-cal-day]'); if(!b) return;
+  fillDreamForm(b.dataset.calDay);
+});
+$('dreamDate')?.addEventListener('change',()=>{ const v=$('dreamDate').value; if(v){ const [y,m]=v.split('-').map(Number); calCursor=new Date(y,m-1,1); fillDreamForm(v);} });
+$('dreamSave')?.addEventListener('click',()=>{
+  const date=($('dreamDate').value||'').trim();
+  const title=($('dreamTitle').value||'').trim();
+  const detail=($('dreamDetail').value||'').trim();
+  if(!date){ alert('Escolha a data da meta no calendário ou no campo de data.'); return; }
+  if(!title){ alert('Escreva qual é o sonho ou objetivo.'); return; }
+  let list=loadDreams();
+  const existing=list.find(d=>d.date===date);
+  if(existing){ existing.title=title; existing.detail=detail; }
+  else list.push({ id:'d_'+Date.now()+'_'+Math.random().toString(36).slice(2,7), date, title, detail, achieved:false, createdAt:new Date().toISOString() });
+  saveDreams(list);
+  calSelected=date;
+  refreshDreamsUI();
+  alert('Meta salva para '+date.split('-').reverse().join('/')+'!');
+});
+$('dreamClear')?.addEventListener('click',()=>{ $('dreamTitle').value=''; $('dreamDetail').value=''; });
+$('dreamList')?.addEventListener('click',e=>{
+  const open=e.target.closest('[data-dream-open]');
+  const done=e.target.closest('[data-dream-done]');
+  const reopen=e.target.closest('[data-dream-reopen]');
+  const del=e.target.closest('[data-dream-del]');
+  if(open){
+    const iso=open.dataset.dreamOpen;
+    const [y,m]=iso.split('-').map(Number);
+    calCursor=new Date(y,m-1,1);
+    fillDreamForm(iso);
+    return;
+  }
+  let list=loadDreams();
+  if(del){
+    if(!confirm('Excluir esta meta?')) return;
+    list=list.filter(d=>d.id!==del.dataset.dreamDel);
+    saveDreams(list); refreshDreamsUI(); return;
+  }
+  if(done){
+    const g=list.find(d=>d.id===done.dataset.dreamDone); if(!g) return;
+    g.achieved=true; g.achievedAt=new Date().toISOString();
+    saveDreams(list); refreshDreamsUI();
+    alert('🏆 Parabéns! Objetivo alcançado: '+g.title);
+    return;
+  }
+  if(reopen){
+    const g=list.find(d=>d.id===reopen.dataset.dreamReopen); if(!g) return;
+    g.achieved=false; delete g.achievedAt;
+    saveDreams(list); refreshDreamsUI();
+  }
+});
+document.querySelector('.tab[data-tab="objetivos"]')?.addEventListener('click',()=>{ refreshDreamsUI(); if(!calSelected) fillDreamForm(''); });
+const _saDreams = showApp;
+showApp = function(){ _saDreams(); try{ refreshDreamsUI(); }catch(e){} };
+
+
 checkSession();
 
 /* ===================== CHATBOT DE DICAS FINANCEIRAS (IA simples) ===================== */
