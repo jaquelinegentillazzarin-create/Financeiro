@@ -74,7 +74,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
     </form>
     <p style="text-align:center;margin-top:14px"><a href="#" id="btnForgot" style="color:#245c4f;font-size:13px;font-weight:650">Esqueci minha senha</a></p>
     <p class="muted" style="text-align:center;margin-top:18px;font-size:12px">
-      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.<br><span style="opacity:.6">versão 17 ✓</span>
+      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.<br><span style="opacity:.6">versão 18 ✓</span>
     </p>
   </div>
 </div>
@@ -1352,13 +1352,65 @@ function parseDoc(raw){return parsePix(raw)||parseBoleto(raw);}
 // ---- v13: PDF/foto (leitura local) + busca de documentos ----
 const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',PDFW='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',TESS='https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/tesseract.min.js';
 const loadLib=u=>new Promise((ok,no)=>{if(document.querySelector(`script[src="${u}"]`))return ok();const e=document.createElement('script');e.src=u;e.onload=ok;e.onerror=()=>no(new Error('Não consegui carregar o leitor de documentos. Desative o escudo do navegador e tente de novo.'));document.head.appendChild(e);});
-async function ocrImage(src,say){await loadLib(TESS);const r=await Tesseract.recognize(src,'por',{logger:m=>say('Lendo a imagem… '+Math.round((m.progress||0)*100)+'%')});return r.data.text;}
+async function resizeForOcr(src,maxW=1280){
+  // Reduz foto do celular antes do OCR — evita tela preta e "sem memória" (é RAM, não espaço em disco)
+  try{
+    let bmp=null;
+    if(typeof createImageBitmap==='function'){
+      try{ bmp=await createImageBitmap(src,{resizeWidth:maxW,resizeQuality:'high'}); }catch(e){ bmp=await createImageBitmap(src); }
+    }
+    const c=document.createElement('canvas');
+    if(bmp){
+      const scale=bmp.width>maxW?maxW/bmp.width:1;
+      c.width=Math.max(1,Math.round(bmp.width*scale));
+      c.height=Math.max(1,Math.round(bmp.height*scale));
+      c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+      try{ bmp.close(); }catch(e){}
+      return c;
+    }
+    // fallback Image
+    const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;
+      if(src instanceof Blob) i.src=URL.createObjectURL(src); else if(typeof src==='string') i.src=src; else ok(null);});
+    if(!img) return src;
+    const scale=img.naturalWidth>maxW?maxW/img.naturalWidth:1;
+    c.width=Math.max(1,Math.round(img.naturalWidth*scale));
+    c.height=Math.max(1,Math.round(img.naturalHeight*scale));
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    if(img.src&&img.src.startsWith('blob:')) try{ URL.revokeObjectURL(img.src); }catch(e){}
+    return c;
+  }catch(e){ return src; }
+}
+async function ocrImage(src,say){
+  await loadLib(TESS);
+  say('Preparando imagem…');
+  const small=await resizeForOcr(src,1280);
+  say('Lendo a imagem…');
+  try{
+    const r=await Tesseract.recognize(small,'por',{
+      logger:m=>{ if(m.status==='recognizing text') say('Lendo a imagem… '+Math.round((m.progress||0)*100)+'%'); }
+    });
+    return r.data.text||'';
+  }catch(err){
+    const msg=String(err&&err.message||err||'');
+    if(/memory|out of memory|Array buffer|allocation/i.test(msg))
+      throw new Error('A foto ficou pesada demais para ler neste aparelho. Tente uma foto mais de perto (só o boleto) ou envie o PDF. Você também pode preencher valor e vencimento na mão.');
+    throw err;
+  }
+}
 async function readPdfText(file,say){
   await loadLib(PDFJS);pdfjsLib.GlobalWorkerOptions.workerSrc=PDFW;
+  if(file.size>15*1024*1024) throw new Error('PDF muito grande (máx. 15 MB). Envie só as páginas do boleto ou uma foto.');
   const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;let t='';
-  for(let i=1;i<=Math.min(pdf.numPages,5);i++){const pg=await pdf.getPage(i);t+=(await pg.getTextContent()).items.map(x=>x.str).join(' ')+'\n';}
-  if(t.trim().length<30){say('PDF escaneado, lendo como imagem…');const pg=await pdf.getPage(1),vp=pg.getViewport({scale:2}),c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;t=await ocrImage(c,say);}
-  return t;}
+  for(let i=1;i<=Math.min(pdf.numPages,3);i++){const pg=await pdf.getPage(i);t+=(await pg.getTextContent()).items.map(x=>x.str).join(' ')+'\n';}
+  if(t.trim().length<30){
+    say('PDF escaneado, lendo como imagem…');
+    const pg=await pdf.getPage(1),vp=pg.getViewport({scale:1.2}),c=document.createElement('canvas');
+    c.width=vp.width;c.height=vp.height;
+    await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+    t=await ocrImage(c,say);
+  }
+  return t;
+}
 const brNum=x=>parseFloat(String(x).replace(/\./g,'').replace(',','.'));
 const isoBR=x=>{const[d,m,y]=x.split('/');return `${y.length===2?'20'+y:y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;};
 function analyzeText(text,fname){
@@ -1375,13 +1427,15 @@ let curDoc=null;
   $('impMsg').insertAdjacentHTML('beforebegin',`<div class="actions"><label class="btn secondary" style="flex:1;text-align:center;cursor:pointer">📄 PDF ou foto<input id="impFile" type="file" accept="application/pdf,image/*" style="display:none"></label><label class="btn secondary" style="flex:1;text-align:center;cursor:pointer">📸 Tirar foto<input id="impPhoto" type="file" accept="image/*" capture="environment" style="display:none"></label></div>`);
   $('impPaid').closest('.full').insertAdjacentHTML('beforebegin',`<div class="full"><label>Salvar em</label><select id="impDest"><option value="bill">Contas (a pagar / atrasada)</option><option value="expense">Gastos (já paga)</option></select></div>`);
   async function onFile(ev){const f=ev.target.files[0];ev.target.value='';if(!f)return;const say=t=>{$('impMsg').style.color='#445';$('impMsg').textContent=t;};
-    try{say('Lendo o documento…');const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);const text=isPdf?await readPdfText(f,say):await ocrImage(f,say);
+    try{if(f.size>20*1024*1024){say('Arquivo muito grande (máx. 20 MB).');return;}
+    say('Lendo o documento…');const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);const text=isPdf?await readPdfText(f,say):await ocrImage(f,say);
       if(text.trim().length<10){$('impMsg').style.color='#b93838';$('impMsg').textContent='Não consegui ler texto nesse arquivo. Tente uma foto mais nítida.';return;}
       const r=analyzeText(text,f.name);curDoc={name:f.name,kind:isPdf?'pdf':'foto',text};
       $('impName').value=r.nome;$('impAmount').value=r.valor||'';$('impDue').value=r.venc||todayISO();$('impPaid').checked=r.paid;$('impDest').value=r.dest;$('impCat').value='Outros';
       $('impDue').dispatchEvent(new Event('change'));$('impForm').classList.remove('hidden');
       $('impMsg').style.color='#b93838';$('impMsg').textContent=(r.valor&&r.venc?'':'Confira os campos: não achei ')+(!r.valor?'o valor. ':'')+(!r.venc&&r.valor?'o vencimento.':'');
-    }catch(e){$('impMsg').style.color='#b93838';$('impMsg').textContent=e.message||'Erro ao ler o arquivo.';}}
+    }catch(e){$('impMsg').style.color='#b93838';const m=String(e&&e.message||e||'Erro ao ler o arquivo.');
+      $('impMsg').textContent=/memory|memória|allocation/i.test(m)?m:'Não consegui ler. Tente foto mais próxima do boleto, ou cole o código, ou preencha na mão. ('+m+')';}}
   $('impFile').addEventListener('change',onFile);$('impPhoto').addEventListener('change',onFile);
   $('impCode').addEventListener('input',()=>{curDoc=null;});
   // salvar em Contas ou Gastos (+ guarda o texto do documento para busca)
