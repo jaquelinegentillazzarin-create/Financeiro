@@ -74,7 +74,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
     </form>
     <p style="text-align:center;margin-top:14px"><a href="#" id="btnForgot" style="color:#245c4f;font-size:13px;font-weight:650">Esqueci minha senha</a></p>
     <p class="muted" style="text-align:center;margin-top:18px;font-size:12px">
-      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.<br><span style="opacity:.6">versão 18 ✓</span>
+      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.<br><span style="opacity:.6">versão 19 ✓</span>
     </p>
   </div>
 </div>
@@ -1054,7 +1054,18 @@ window.toggleBill = async id => {
       updates = { due_date: `${prevM}-${String(newDay).padStart(2,'0')}`, paid: false };
     }
   } else {
-    updates = { paid: !b.paid };
+    // Conta única: só marca/desmarca paga e restaura o nome se desfizer
+    let name = b.name || '';
+    if (b.paid) {
+      const formas = ['Pix','Dinheiro','Débito','Crédito','Crédito parcelado','Boleto','Carnê','Transferência','Outro'];
+      for (const f of formas) {
+        const suf = ' · ' + f;
+        if (name.endsWith(suf)) { name = name.slice(0, -suf.length); break; }
+      }
+      updates = { paid: false, name };
+    } else {
+      updates = { paid: true };
+    }
   }
 
   const { error } = await sb.from('bills').update(updates).eq('id', id);
@@ -1073,12 +1084,27 @@ window.deletePurchase = async id => {
 window.undoBill = async id => {
   const b = data.bills.find(x => x.id === id);
   if (!b) return;
+  if (!confirm('Desfazer o último pagamento e voltar a conta como estava antes?')) return;
+  // Volta 1 mês no vencimento (contas mensais avançam a data ao pagar)
   const prevM = shiftMonth(b.dueDate.slice(0,7), -1);
   const [y, m] = prevM.split('-').map(Number);
   const day = Math.min(getBillDay(b), new Date(y, m, 0).getDate());
-  const { error } = await sb.from('bills').update({ due_date: `${prevM}-${String(day).padStart(2,'0')}`, paid: false }).eq('id', id);
+  // Remove anotação de forma de pagamento colocada no nome (ex.: " · Pix")
+  const formas = ['Pix','Dinheiro','Débito','Crédito','Crédito parcelado','Boleto','Carnê','Transferência','Outro'];
+  let name = b.name || '';
+  for (const f of formas) {
+    const suf = ' · ' + f;
+    if (name.endsWith(suf)) { name = name.slice(0, -suf.length); break; }
+  }
+  const updates = {
+    due_date: `${prevM}-${String(day).padStart(2,'0')}`,
+    paid: false,
+    name: name
+  };
+  const { error } = await sb.from('bills').update(updates).eq('id', id);
   if (error) { alert('Erro: ' + error.message); return; }
   await loadAllData();
+  alert('Pronto. A conta voltou ao estado anterior.');
 };
 
 window.deleteBill = async id => {
