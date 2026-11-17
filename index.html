@@ -1509,11 +1509,6 @@ function parseDoc(raw){return parsePix(raw)||parseBoleto(raw);}
     $('impName').value=r.nome;$('impAmount').value=r.valor||'';$('impDue').value=r.venc||todayISO();$('impPaid').checked=false;$('impCat').value='Outros';status();$('impForm').classList.remove('hidden');}
   f.addEventListener('click',open);$('impClose').addEventListener('click',close);$('impRead').addEventListener('click',read);
   $('impDue').addEventListener('change',status);$('impPaid').addEventListener('change',status);
-  $('impSave').addEventListener('click',async()=>{const amount=Number($('impAmount').value);
-    if(!$('impName').value.trim()||!(amount>0)||!$('impDue').value){$('impMsg').textContent='Preencha descrição, valor e vencimento.';return;}
-    const{error}=await sb.from('bills').insert({name:$('impName').value.trim(),amount,due_date:$('impDue').value,category:$('impCat').value,repeat:'no',paid:$('impPaid').checked});
-    if(error){$('impMsg').textContent='Erro: '+error.message;return;}
-    close();await loadAllData();alert('Conta salva em Contas.');});
   $('impCam').addEventListener('click',async()=>{
     if(!('BarcodeDetector' in window)||!navigator.mediaDevices){$('impMsg').textContent='Este navegador não lê código pela câmera. Cole o número acima.';return;}
     try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});const v=$('impVideo');v.srcObject=stream;v.style.display='block';await v.play();
@@ -1524,12 +1519,22 @@ function parseDoc(raw){return parsePix(raw)||parseBoleto(raw);}
 
 // ---- v13: PDF/foto (leitura local) + busca de documentos ----
 const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',PDFW='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',TESS='https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/tesseract.min.js';
-const loadLib=u=>new Promise((ok,no)=>{if(document.querySelector(`script[src="${u}"]`))return ok();const e=document.createElement('script');e.src=u;e.onload=ok;e.onerror=()=>no(new Error('Não consegui carregar o leitor de documentos. Desative o escudo do navegador e tente de novo.'));document.head.appendChild(e);});
+const loadLib=(u,glob)=>new Promise((ok,no)=>{
+  if(glob&&window[glob])return ok();
+  const old=document.querySelector(`script[src="${u}"]`);
+  if(old&&!glob)return ok();
+  if(old)old.remove();
+  const e=document.createElement('script');e.src=u;
+  e.onload=()=>(glob&&!window[glob])?no(new Error('O leitor de documentos carregou incompleto. Tente de novo.')):ok();
+  e.onerror=()=>{e.remove();no(new Error('Não consegui carregar o leitor de documentos. Confira a internet ou desative o escudo do navegador e tente de novo.'));};
+  document.head.appendChild(e);
+});
 async function resizeForOcr(src,maxW=900){
   // Reduz e comprime a foto ANTES do OCR — evita travar/fechar o celular (falta de RAM)
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   try{
     await sleep(30);
+    if(src&&src.tagName==='CANVAS'){ src=await new Promise(res=>src.toBlob(res,'image/jpeg',0.8)); if(!src)return null; }
     let w=0,h=0; const c=document.createElement('canvas'); const ctx=c.getContext('2d',{alpha:false});
     // 1) Tenta ImageBitmap com resize nativo (mais leve)
     if(typeof createImageBitmap==='function' && (src instanceof Blob || src instanceof File)){
@@ -1581,38 +1586,37 @@ async function ocrImage(src,say){
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   say('Carregando leitor de imagem…');
   await sleep(40);
-  await loadLib(TESS);
+  await loadLib(TESS,'Tesseract');
   say('Preparando foto (reduzindo tamanho)…');
   await sleep(40);
-  let small=null;
+  let small=await resizeForOcr(src,1000);
+  if(!small) throw new Error('Não consegui preparar a foto. Tente outra foto mais de perto ou envie PDF.');
+  say('Baixando o idioma (só na 1ª vez, ~2 MB)…');
+  let worker=null,timer=null;
   try{
-    small=await resizeForOcr(src,900);
-  }catch(e){
-    throw new Error('Não consegui preparar a foto. Tente outra foto mais de perto ou envie PDF.');
-  }
-  say('Lendo a imagem… isso pode levar alguns segundos');
-  await sleep(40);
-  try{
-    const recognize=Tesseract.recognize(small,'por',{
+    // Idioma "fast" (bem menor) e worker criado/encerrado por nós: sem travar nem vazar memória
+    worker=await Tesseract.createWorker('por',1,{
+      langPath:'https://tessdata.projectnaptha.com/4.0.0_fast',
       logger:m=>{
-        if(m.status==='recognizing text')
-          say('Lendo a imagem… '+Math.round((m.progress||0)*100)+'%');
+        if(m.status==='recognizing text') say('Lendo a imagem… '+Math.round((m.progress||0)*100)+'%');
+        else if(/loading language/i.test(m.status||'')) say('Baixando o idioma… '+Math.round((m.progress||0)*100)+'%');
       }
     });
-    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('A leitura demorou demais. Preencha valor e vencimento na mão ou envie o PDF.')),45000));
-    const r=await Promise.race([recognize,timeout]);
-    small=null;
+    const timeout=new Promise((_,rej)=>{timer=setTimeout(()=>rej(new Error('A leitura demorou demais. Preencha valor e vencimento na mão ou envie o PDF.')),120000);});
+    const r=await Promise.race([worker.recognize(small),timeout]);
     return (r&&r.data&&r.data.text)||'';
   }catch(err){
-    small=null;
     const msg=String(err&&err.message||err||'');
     if(/memory|out of memory|Array buffer|allocation|Aborted|heap/i.test(msg))
       throw new Error('A foto pesou demais para este celular. Tire outra mais de perto (só o boleto) ou envie o PDF. Também pode preencher na mão.');
     throw err;
+  }finally{
+    clearTimeout(timer); small=null;
+    if(worker){ try{ await worker.terminate(); }catch(e){} }
   }
 }
 async function readPdfText(file,say){
-  await loadLib(PDFJS);pdfjsLib.GlobalWorkerOptions.workerSrc=PDFW;
+  await loadLib(PDFJS,'pdfjsLib');pdfjsLib.GlobalWorkerOptions.workerSrc=PDFW;
   if(file.size>15*1024*1024) throw new Error('PDF muito grande (máx. 15 MB). Envie só as páginas do boleto ou uma foto.');
   const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;let t='';
   for(let i=1;i<=Math.min(pdf.numPages,3);i++){const pg=await pdf.getPage(i);t+=(await pg.getTextContent()).items.map(x=>x.str).join(' ')+'\n';}
@@ -1641,9 +1645,10 @@ let curDoc=null;
   $('impMsg').insertAdjacentHTML('beforebegin',`<div class="actions"><label class="btn secondary" style="flex:1;text-align:center;cursor:pointer">📄 PDF ou foto<input id="impFile" type="file" accept="application/pdf,image/*" style="display:none"></label><label class="btn secondary" style="flex:1;text-align:center;cursor:pointer">📸 Tirar foto<input id="impPhoto" type="file" accept="image/*" capture="environment" style="display:none"></label></div>`);
   $('impPaid').closest('.full').insertAdjacentHTML('beforebegin',`<div class="full"><label>Salvar em</label><select id="impDest"><option value="bill">Contas (a pagar / atrasada)</option><option value="expense">Gastos (já paga)</option></select></div>`);
   async function onFile(ev){
-    const f=ev.target.files&&ev.target.files[0];
-    try{ ev.target.value=''; }catch(e){}
+    const inp=ev.target;
+    const f=inp.files&&inp.files[0];
     if(!f)return;
+    const resetInput=()=>{ try{ inp.value=''; }catch(e){} };
     const say=t=>{ const el=$('impMsg'); if(!el)return; el.style.color='#445'; el.textContent=t; };
     const sayErr=t=>{ const el=$('impMsg'); if(!el)return; el.style.color='#b93838'; el.textContent=t; };
     // Abre o formulário na mão se a leitura falhar — evita “travou e saiu”
@@ -1656,7 +1661,7 @@ let curDoc=null;
     };
     try{
       if(f.size>12*1024*1024){ sayErr('Arquivo muito grande (máx. 12 MB). Tire foto só do boleto ou envie PDF menor.'); openManual(); return; }
-      say('Recebi a foto. Preparando…');
+      say('Recebi o arquivo. Preparando…');
       await new Promise(r=>setTimeout(r,50));
       const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);
       const isImg=/^image\//i.test(f.type||'')||/\.(jpe?g|png|webp|gif|heic|heif)$/i.test(f.name||'');
@@ -1689,7 +1694,7 @@ let curDoc=null;
       const m=String(e&&e.message||e||'Erro ao ler o arquivo.');
       sayErr(/memory|memória|allocation|pesou|demorou/i.test(m)?m:'Não consegui ler a foto. Preencha na mão ou envie o PDF. ('+m+')');
       openManual();
-    }
+    }finally{ resetInput(); }
   }
   $('impFile').addEventListener('change',onFile);$('impPhoto').addEventListener('change',onFile);
   $('impCode').addEventListener('input',()=>{curDoc=null;});
