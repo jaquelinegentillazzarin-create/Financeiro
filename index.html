@@ -1457,13 +1457,32 @@ $('setWipe').addEventListener('click',()=>$('btnWipe').click());
 function dayAdd(base,n){const d=new Date(base+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
 function parseBoleto(raw){
   const d=String(raw).replace(/\D/g,'');
-  if(d.length===48&&d[0]==='8'){const b=d.slice(0,11)+d.slice(12,23)+d.slice(24,35)+d.slice(36,47);return{valor:'67'.includes(d[2])?+b.slice(4,15)/100:0,venc:'',nome:'Conta de consumo'};}
-  let bar;
-  if(d.length===47)bar=d.slice(0,4)+d[32]+d.slice(33,47)+d.slice(4,9)+d.slice(10,20)+d.slice(21,31);
-  else if(d.length===44)bar=d;else return null;
-  const fat=+bar.slice(5,9),valor=+bar.slice(9,19)/100;let venc='';
-  if(fat>0){const A=dayAdd('1997-10-07',fat),B=fat>=1000?dayAdd('2025-02-22',fat-1000):A,t=Date.now();
-    venc=Math.abs(new Date(B)-t)<Math.abs(new Date(A)-t)?B:A;}
+  if(!d||d.length<44) return null;
+  // Contas de consumo (concessionária) — 48 dígitos iniciando em 8
+  if(d.length>=48&&d[0]==='8'){
+    const x=d.slice(0,48);
+    const b=x.slice(0,11)+x.slice(12,23)+x.slice(24,35)+x.slice(36,47);
+    const valor='67'.includes(x[2])?(+b.slice(4,15)/100):0;
+    return{valor,venc:'',nome:'Conta de consumo'};
+  }
+  let bar=null;
+  if(d.length>=47){
+    // Linha digitável bancária 47 → código de barras 44
+    const L=d.slice(0,47);
+    bar=L.slice(0,4)+L[32]+L.slice(33,47)+L.slice(4,9)+L.slice(10,20)+L.slice(21,31);
+  } else if(d.length>=44){
+    bar=d.slice(0,44);
+  } else return null;
+  if(!bar||bar.length<19) return null;
+  const fat=+bar.slice(5,9);
+  const valor=+bar.slice(9,19)/100;
+  let venc='';
+  if(fat>0){
+    const A=dayAdd('1997-10-07',fat);
+    const B=fat>=1000?dayAdd('2025-02-22',fat-1000):A;
+    const now=Date.now();
+    venc=Math.abs(new Date(B)-now)<Math.abs(new Date(A)-now)?B:A;
+  }
   return{valor,venc,nome:'Boleto'};
 }
 function parsePix(raw){
@@ -1503,12 +1522,54 @@ function parseDoc(raw){return parsePix(raw)||parseBoleto(raw);}
   const status=()=>{const late=$('impDue').value&&$('impDue').value<todayISO()&&!$('impPaid').checked;
     $('impStatus').textContent=$('impPaid').checked?'✅ Paga':late?'⚠ Atrasada':'🕒 A pagar';
     if(late&&$('impCat').value!=='Contas atrasadas')$('impCat').value='Contas atrasadas';};
-  function read(){const r=parseDoc($('impCode').value);
-    if(!r){$('impMsg').textContent='Não consegui ler esse código. Confira se copiou o número inteiro.';$('impForm').classList.add('hidden');return;}
-    $('impMsg').textContent=r.valor?'':'Esse código não traz o valor. Preencha abaixo.';
-    $('impName').value=r.nome;$('impAmount').value=r.valor||'';$('impDue').value=r.venc||todayISO();$('impPaid').checked=false;$('impCat').value='Outros';status();$('impForm').classList.remove('hidden');}
+  function read(){
+    const raw=($('impCode').value||'').trim();
+    if(!raw){$('impMsg').textContent='Cole a linha digitável, o código de barras ou o Pix copia e cola.';$('impForm').classList.add('hidden');return;}
+    let r=parseDoc(raw);
+    // Se colou texto maior, tenta achar Pix ou sequência de dígitos de boleto
+    if(!r){
+      const pix=raw.match(/000201[\dA-Za-z]+/);
+      if(pix) r=parsePix(pix[0]);
+    }
+    if(!r){
+      const digits=raw.replace(/\D/g,'');
+      // tenta fatias de 47, 48 ou 44 dígitos (boleto comum no Brasil)
+      const lens=[47,48,44];
+      for(const len of lens){
+        if(digits.length>=len){
+          for(let i=0;i+len<=digits.length;i++){
+            const slice=digits.slice(i,i+len);
+            const tryR=parseBoleto(slice);
+            if(tryR&&(tryR.valor>0||tryR.venc)){ r=tryR; break; }
+          }
+        }
+        if(r) break;
+      }
+      if(!r&&digits.length>=44) r=parseBoleto(digits.slice(0,47))||parseBoleto(digits.slice(0,44));
+    }
+    if(!r){
+      $('impMsg').textContent='Não consegui ler esse código. Confira se colou a linha inteira (47 números do boleto) ou o Pix completo (começa com 000201).';
+      $('impForm').classList.add('hidden');
+      return;
+    }
+    $('impMsg').style.color='#0f766e';
+    $('impMsg').textContent=r.valor?('Código lido! Confira e salve.'):(r.venc?'Li a data; preencha o valor.':'Não achei o valor neste código. Preencha abaixo.');
+    if(!r.valor) $('impMsg').style.color='#b93838';
+    $('impName').value=r.nome||'Conta';
+    $('impAmount').value=r.valor||'';
+    $('impDue').value=r.venc||todayISO();
+    $('impPaid').checked=false;
+    if($('impCat')) $('impCat').value='Outros';
+    status();
+    $('impForm').classList.remove('hidden');
+  }
   f.addEventListener('click',open);$('impClose').addEventListener('click',close);$('impRead').addEventListener('click',read);
   $('impDue').addEventListener('change',status);$('impPaid').addEventListener('change',status);
+  $('impSave').addEventListener('click',async()=>{const amount=Number($('impAmount').value);
+    if(!$('impName').value.trim()||!(amount>0)||!$('impDue').value){$('impMsg').textContent='Preencha descrição, valor e vencimento.';return;}
+    const{error}=await sb.from('bills').insert({name:$('impName').value.trim(),amount,due_date:$('impDue').value,category:$('impCat').value,repeat:'no',paid:$('impPaid').checked});
+    if(error){$('impMsg').textContent='Erro: '+error.message;return;}
+    close();await loadAllData();alert('Conta salva em Contas.');});
   $('impCam').addEventListener('click',async()=>{
     if(!('BarcodeDetector' in window)||!navigator.mediaDevices){$('impMsg').textContent='Este navegador não lê código pela câmera. Cole o número acima.';return;}
     try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});const v=$('impVideo');v.srcObject=stream;v.style.display='block';await v.play();
@@ -1519,104 +1580,54 @@ function parseDoc(raw){return parsePix(raw)||parseBoleto(raw);}
 
 // ---- v13: PDF/foto (leitura local) + busca de documentos ----
 const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',PDFW='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',TESS='https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/tesseract.min.js';
-const loadLib=(u,glob)=>new Promise((ok,no)=>{
-  if(glob&&window[glob])return ok();
-  const old=document.querySelector(`script[src="${u}"]`);
-  if(old&&!glob)return ok();
-  if(old)old.remove();
-  const e=document.createElement('script');e.src=u;
-  e.onload=()=>(glob&&!window[glob])?no(new Error('O leitor de documentos carregou incompleto. Tente de novo.')):ok();
-  e.onerror=()=>{e.remove();no(new Error('Não consegui carregar o leitor de documentos. Confira a internet ou desative o escudo do navegador e tente de novo.'));};
-  document.head.appendChild(e);
-});
-async function resizeForOcr(src,maxW=900){
-  // Reduz e comprime a foto ANTES do OCR — evita travar/fechar o celular (falta de RAM)
-  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const loadLib=u=>new Promise((ok,no)=>{if(document.querySelector(`script[src="${u}"]`))return ok();const e=document.createElement('script');e.src=u;e.onload=ok;e.onerror=()=>no(new Error('Não consegui carregar o leitor de documentos. Desative o escudo do navegador e tente de novo.'));document.head.appendChild(e);});
+async function resizeForOcr(src,maxW=1280){
+  // Reduz foto do celular antes do OCR — evita tela preta e "sem memória" (é RAM, não espaço em disco)
   try{
-    await sleep(30);
-    if(src&&src.tagName==='CANVAS'){ src=await new Promise(res=>src.toBlob(res,'image/jpeg',0.8)); if(!src)return null; }
-    let w=0,h=0; const c=document.createElement('canvas'); const ctx=c.getContext('2d',{alpha:false});
-    // 1) Tenta ImageBitmap com resize nativo (mais leve)
-    if(typeof createImageBitmap==='function' && (src instanceof Blob || src instanceof File)){
-      try{
-        let bmp=await createImageBitmap(src,{resizeWidth:maxW,resizeQuality:'low'});
-        w=bmp.width; h=bmp.height;
-        if(w>maxW){ const s=maxW/w; w=maxW; h=Math.max(1,Math.round(h*s)); }
-        c.width=w; c.height=h;
-        ctx.drawImage(bmp,0,0,w,h);
-        try{ bmp.close(); }catch(e){}
-        bmp=null;
-        await sleep(20);
-        const blob=await new Promise(res=>c.toBlob(res,'image/jpeg',0.65));
-        c.width=0; c.height=0;
-        return blob||src;
-      }catch(e){ /* cai no fallback */ }
+    let bmp=null;
+    if(typeof createImageBitmap==='function'){
+      try{ bmp=await createImageBitmap(src,{resizeWidth:maxW,resizeQuality:'high'}); }catch(e){ bmp=await createImageBitmap(src); }
     }
-    // 2) Fallback com <img>
-    const img=await new Promise((ok,no)=>{
-      const i=new Image();
-      i.onload=()=>ok(i);
-      i.onerror=()=>no(new Error('Não abriu a imagem'));
-      if(src instanceof Blob || src instanceof File){
-        const u=URL.createObjectURL(src);
-        i.onload=()=>{ try{ URL.revokeObjectURL(u); }catch(e){} ok(i); };
-        i.src=u;
-      } else if(typeof src==='string'){ i.src=src; }
-      else no(new Error('Formato de imagem inválido'));
-    });
-    w=img.naturalWidth||img.width||1;
-    h=img.naturalHeight||img.height||1;
-    if(w>maxW){ const s=maxW/w; w=maxW; h=Math.max(1,Math.round(h*s)); }
-    // Limita altura também (fotos verticais enormes)
-    const maxH=1400;
-    if(h>maxH){ const s=maxH/h; h=maxH; w=Math.max(1,Math.round(w*s)); }
-    c.width=w; c.height=h;
-    ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h);
-    ctx.drawImage(img,0,0,w,h);
-    await sleep(20);
-    const blob=await new Promise(res=>c.toBlob(res,'image/jpeg',0.65));
-    c.width=0; c.height=0;
-    return blob||src;
-  }catch(e){
-    console.warn('resizeForOcr', e);
-    return src;
-  }
+    const c=document.createElement('canvas');
+    if(bmp){
+      const scale=bmp.width>maxW?maxW/bmp.width:1;
+      c.width=Math.max(1,Math.round(bmp.width*scale));
+      c.height=Math.max(1,Math.round(bmp.height*scale));
+      c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+      try{ bmp.close(); }catch(e){}
+      return c;
+    }
+    // fallback Image
+    const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;
+      if(src instanceof Blob) i.src=URL.createObjectURL(src); else if(typeof src==='string') i.src=src; else ok(null);});
+    if(!img) return src;
+    const scale=img.naturalWidth>maxW?maxW/img.naturalWidth:1;
+    c.width=Math.max(1,Math.round(img.naturalWidth*scale));
+    c.height=Math.max(1,Math.round(img.naturalHeight*scale));
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    if(img.src&&img.src.startsWith('blob:')) try{ URL.revokeObjectURL(img.src); }catch(e){}
+    return c;
+  }catch(e){ return src; }
 }
 async function ocrImage(src,say){
-  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-  say('Carregando leitor de imagem…');
-  await sleep(40);
-  await loadLib(TESS,'Tesseract');
-  say('Preparando foto (reduzindo tamanho)…');
-  await sleep(40);
-  let small=await resizeForOcr(src,1000);
-  if(!small) throw new Error('Não consegui preparar a foto. Tente outra foto mais de perto ou envie PDF.');
-  say('Baixando o idioma (só na 1ª vez, ~2 MB)…');
-  let worker=null,timer=null;
+  await loadLib(TESS);
+  say('Preparando imagem…');
+  const small=await resizeForOcr(src,1280);
+  say('Lendo a imagem…');
   try{
-    // Idioma "fast" (bem menor) e worker criado/encerrado por nós: sem travar nem vazar memória
-    worker=await Tesseract.createWorker('por',1,{
-      langPath:'https://tessdata.projectnaptha.com/4.0.0_fast',
-      logger:m=>{
-        if(m.status==='recognizing text') say('Lendo a imagem… '+Math.round((m.progress||0)*100)+'%');
-        else if(/loading language/i.test(m.status||'')) say('Baixando o idioma… '+Math.round((m.progress||0)*100)+'%');
-      }
+    const r=await Tesseract.recognize(small,'por',{
+      logger:m=>{ if(m.status==='recognizing text') say('Lendo a imagem… '+Math.round((m.progress||0)*100)+'%'); }
     });
-    const timeout=new Promise((_,rej)=>{timer=setTimeout(()=>rej(new Error('A leitura demorou demais. Preencha valor e vencimento na mão ou envie o PDF.')),120000);});
-    const r=await Promise.race([worker.recognize(small),timeout]);
-    return (r&&r.data&&r.data.text)||'';
+    return r.data.text||'';
   }catch(err){
     const msg=String(err&&err.message||err||'');
-    if(/memory|out of memory|Array buffer|allocation|Aborted|heap/i.test(msg))
-      throw new Error('A foto pesou demais para este celular. Tire outra mais de perto (só o boleto) ou envie o PDF. Também pode preencher na mão.');
+    if(/memory|out of memory|Array buffer|allocation/i.test(msg))
+      throw new Error('A foto ficou pesada demais para ler neste aparelho. Tente uma foto mais de perto (só o boleto) ou envie o PDF. Você também pode preencher valor e vencimento na mão.');
     throw err;
-  }finally{
-    clearTimeout(timer); small=null;
-    if(worker){ try{ await worker.terminate(); }catch(e){} }
   }
 }
 async function readPdfText(file,say){
-  await loadLib(PDFJS,'pdfjsLib');pdfjsLib.GlobalWorkerOptions.workerSrc=PDFW;
+  await loadLib(PDFJS);pdfjsLib.GlobalWorkerOptions.workerSrc=PDFW;
   if(file.size>15*1024*1024) throw new Error('PDF muito grande (máx. 15 MB). Envie só as páginas do boleto ou uma foto.');
   const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;let t='';
   for(let i=1;i<=Math.min(pdf.numPages,3);i++){const pg=await pdf.getPage(i);t+=(await pg.getTextContent()).items.map(x=>x.str).join(' ')+'\n';}
@@ -1644,58 +1655,16 @@ let curDoc=null;
 (function(){
   $('impMsg').insertAdjacentHTML('beforebegin',`<div class="actions"><label class="btn secondary" style="flex:1;text-align:center;cursor:pointer">📄 PDF ou foto<input id="impFile" type="file" accept="application/pdf,image/*" style="display:none"></label><label class="btn secondary" style="flex:1;text-align:center;cursor:pointer">📸 Tirar foto<input id="impPhoto" type="file" accept="image/*" capture="environment" style="display:none"></label></div>`);
   $('impPaid').closest('.full').insertAdjacentHTML('beforebegin',`<div class="full"><label>Salvar em</label><select id="impDest"><option value="bill">Contas (a pagar / atrasada)</option><option value="expense">Gastos (já paga)</option></select></div>`);
-  async function onFile(ev){
-    const inp=ev.target;
-    const f=inp.files&&inp.files[0];
-    if(!f)return;
-    const resetInput=()=>{ try{ inp.value=''; }catch(e){} };
-    const say=t=>{ const el=$('impMsg'); if(!el)return; el.style.color='#445'; el.textContent=t; };
-    const sayErr=t=>{ const el=$('impMsg'); if(!el)return; el.style.color='#b93838'; el.textContent=t; };
-    // Abre o formulário na mão se a leitura falhar — evita “travou e saiu”
-    const openManual=()=>{
-      try{
-        $('impForm').classList.remove('hidden');
-        if($('impDue')&&!$('impDue').value)$('impDue').value=todayISO();
-        if($('impName')&&!$('impName').value)$('impName').value=(f.name||'Conta').replace(/\.[^.]+$/,'');
-      }catch(e){}
-    };
-    try{
-      if(f.size>12*1024*1024){ sayErr('Arquivo muito grande (máx. 12 MB). Tire foto só do boleto ou envie PDF menor.'); openManual(); return; }
-      say('Recebi o arquivo. Preparando…');
-      await new Promise(r=>setTimeout(r,50));
-      const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);
-      const isImg=/^image\//i.test(f.type||'')||/\.(jpe?g|png|webp|gif|heic|heif)$/i.test(f.name||'');
-      let text='';
-      if(isPdf){
-        text=await readPdfText(f,say);
-      } else if(isImg || f.type==='' || f.type==='application/octet-stream'){
-        // Foto da câmera (Android às vezes manda type vazio)
-        text=await ocrImage(f,say);
-      } else {
-        // Tenta OCR mesmo assim
-        try{ text=await ocrImage(f,say); }
-        catch(e1){ try{ text=await readPdfText(f,say); }catch(e2){ throw e1; } }
-      }
-      if(!text||text.trim().length<10){
-        sayErr('Não li o texto direito. Confira/preencha os campos na mão (valor e vencimento).');
-        openManual();
-        return;
-      }
-      const r=analyzeText(text,f.name);
-      curDoc={name:f.name,kind:isPdf?'pdf':'foto',text};
+  async function onFile(ev){const f=ev.target.files[0];ev.target.value='';if(!f)return;const say=t=>{$('impMsg').style.color='#445';$('impMsg').textContent=t;};
+    try{if(f.size>20*1024*1024){say('Arquivo muito grande (máx. 20 MB).');return;}
+    say('Lendo o documento…');const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);const text=isPdf?await readPdfText(f,say):await ocrImage(f,say);
+      if(text.trim().length<10){$('impMsg').style.color='#b93838';$('impMsg').textContent='Não consegui ler texto nesse arquivo. Tente uma foto mais nítida.';return;}
+      const r=analyzeText(text,f.name);curDoc={name:f.name,kind:isPdf?'pdf':'foto',text};
       $('impName').value=r.nome;$('impAmount').value=r.valor||'';$('impDue').value=r.venc||todayISO();$('impPaid').checked=r.paid;$('impDest').value=r.dest;$('impCat').value='Outros';
       $('impDue').dispatchEvent(new Event('change'));$('impForm').classList.remove('hidden');
-      if(r.valor&&r.venc){ say('Pronto! Confira os dados e salve.'); $('impMsg').style.color='#0f766e'; }
-      else {
-        sayErr((!r.valor&&!r.venc)?'Confira os campos: preencha valor e vencimento.':(!r.valor?'Confira: não achei o valor.':'Confira: não achei o vencimento.'));
-      }
-    }catch(e){
-      console.warn('import onFile', e);
-      const m=String(e&&e.message||e||'Erro ao ler o arquivo.');
-      sayErr(/memory|memória|allocation|pesou|demorou/i.test(m)?m:'Não consegui ler a foto. Preencha na mão ou envie o PDF. ('+m+')');
-      openManual();
-    }finally{ resetInput(); }
-  }
+      $('impMsg').style.color='#b93838';$('impMsg').textContent=(r.valor&&r.venc?'':'Confira os campos: não achei ')+(!r.valor?'o valor. ':'')+(!r.venc&&r.valor?'o vencimento.':'');
+    }catch(e){$('impMsg').style.color='#b93838';const m=String(e&&e.message||e||'Erro ao ler o arquivo.');
+      $('impMsg').textContent=/memory|memória|allocation/i.test(m)?m:'Não consegui ler. Tente foto mais próxima do boleto, ou cole o código, ou preencha na mão. ('+m+')';}}
   $('impFile').addEventListener('change',onFile);$('impPhoto').addEventListener('change',onFile);
   $('impCode').addEventListener('input',()=>{curDoc=null;});
   // salvar em Contas ou Gastos (+ guarda o texto do documento para busca)
