@@ -74,7 +74,7 @@ nav.tabs,nav{display:flex;gap:6px;overflow-x:auto;padding:8px;background:#fff;bo
     </form>
     <p style="text-align:center;margin-top:14px"><a href="#" id="btnForgot" style="color:#245c4f;font-size:13px;font-weight:650">Esqueci minha senha</a></p>
     <p class="muted" style="text-align:center;margin-top:18px;font-size:12px">
-      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.<br><span style="opacity:.6">versão 25 ✓</span>
+      Controlem os gastos juntos, em família.<br>É uma conta só: todos entram com o mesmo e-mail e senha.
     </p>
   </div>
 </div>
@@ -1498,8 +1498,7 @@ function parseDoc(raw){return parsePix(raw)||parseBoleto(raw);}
   <h2 style="margin:0 0 6px;color:#173e36">📎 Importar boleto ou Pix</h2>
   <p class="muted" style="margin:0 0 10px;font-size:13px">Cole o número do boleto ou o Pix copia e cola. Tudo é lido no seu aparelho, nada é enviado.</p>
   <textarea id="impCode" rows="3" placeholder="Linha digitável, código de barras ou Pix copia e cola" style="width:100%;border-radius:12px;border:1px solid #e6eaf1;padding:10px"></textarea>
-  <div class="actions"><button type="button" class="btn secondary" id="impCam" style="flex:1">📷 Ler com a câmera</button><button type="button" class="btn" id="impRead" style="flex:1">Ler</button></div>
-  <video id="impVideo" playsinline muted style="display:none;width:100%;border-radius:12px;margin-top:10px"></video>
+  <div class="actions"><button type="button" class="btn" id="impRead" style="flex:1">Ler código</button></div>
   <div id="impMsg" style="color:#b93838;font-size:13px;margin-top:8px"></div>
   <div id="impForm" class="hidden formgrid" style="margin-top:10px">
     <div class="full"><label>Descrição</label><input id="impName"></div>
@@ -1516,9 +1515,8 @@ function parseDoc(raw){return parsePix(raw)||parseBoleto(raw);}
   f.style.cssText='position:fixed;right:16px;bottom:96px;z-index:30;border:0;border-radius:30px;padding:13px 18px;background:#0f766e;color:#fff;font-weight:700;box-shadow:0 8px 22px #0f766e66;cursor:pointer';
   $('app').appendChild(f);
   $('impCat').innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
-  let stream=null;const stopCam=()=>{if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}$('impVideo').style.display='none';};
   const open=()=>{$('impCode').value='';$('impMsg').textContent='';$('impForm').classList.add('hidden');m.classList.remove('hidden');};
-  const close=()=>{stopCam();m.classList.add('hidden');};
+  const close=()=>{m.classList.add('hidden');};
   const status=()=>{const late=$('impDue').value&&$('impDue').value<todayISO()&&!$('impPaid').checked;
     $('impStatus').textContent=$('impPaid').checked?'✅ Paga':late?'⚠ Atrasada':'🕒 A pagar';
     if(late&&$('impCat').value!=='Contas atrasadas')$('impCat').value='Contas atrasadas';};
@@ -1570,12 +1568,6 @@ function parseDoc(raw){return parsePix(raw)||parseBoleto(raw);}
     const{error}=await sb.from('bills').insert({name:$('impName').value.trim(),amount,due_date:$('impDue').value,category:$('impCat').value,repeat:'no',paid:$('impPaid').checked});
     if(error){$('impMsg').textContent='Erro: '+error.message;return;}
     close();await loadAllData();alert('Conta salva em Contas.');});
-  $('impCam').addEventListener('click',async()=>{
-    if(!('BarcodeDetector' in window)||!navigator.mediaDevices){$('impMsg').textContent='Este navegador não lê código pela câmera. Cole o número acima.';return;}
-    try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});const v=$('impVideo');v.srcObject=stream;v.style.display='block';await v.play();
-      const det=new BarcodeDetector({formats:['itf','code_128','qr_code']});
-      const loop=async()=>{if(!stream)return;try{const c=await det.detect(v);if(c.length){$('impCode').value=c[0].rawValue;stopCam();read();return;}}catch(e){}setTimeout(loop,300);};loop();
-    }catch(e){$('impMsg').textContent='Não consegui abrir a câmera. Libere a permissão ou cole o número.';}});
 })();
 
 // ---- v13: PDF/foto (leitura local) + busca de documentos ----
